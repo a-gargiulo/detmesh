@@ -8,20 +8,10 @@ typedef struct {
   double r;
 } Geometry;
 
-/* typedef struct { */
-/*   double p1x; */
-/*   double p2x; */
-/*   double cx; */
-/*   double cy; */
-/* } Arc */
-
 double leading_edge(double x, float alpha);
 
 double trailing_edge(double x, float beta, double l_d);
 
-Arc* calculate_arc(double x, const Geometry* geom);
+void arc_constrain_functions(double* x, double* f, const Geometry* geo);
 
-
-
-
-#endif // DIAMOND_H
+#endif  // DIAMOND_H
