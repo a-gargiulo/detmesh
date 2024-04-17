@@ -12,7 +12,7 @@ double leading_edge(const double x, const float alpha) {
 }
 
 double trailing_edge(const double x, const float beta, const double l_d) {
-  return tan(beta) * (l_d - x);
+  return tan(beta * M_PI / 180) * (l_d - x);
 }
 
 void arc_constrain_functions(const Vector* x, Vector* f, const Geometry* geo) {
@@ -52,7 +52,7 @@ Vector* calculate_arc_parameters(const Vector* x_guess, const Geometry* geo) {
   while (counter < MAX_ITER) {
     memcpy(x_old->data, x_new->data, x_old->size * sizeof(double));
     for (int i = 0; i < 4; ++i) {
-      printf("%1.4f, ", x_new->data[i]);
+      printf("%.12f, ", x_new->data[i]);
     }
     printf("\n");
     arc_constrain_functions(x_old, x_new, geo);
