@@ -1,36 +1,66 @@
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "utility.h"
 
-#include <math.h>
-
-Vector* create_vector(int size) {
+Vector* construct_vector(const int size) {
   Vector* vec = (Vector*)malloc(sizeof(Vector));
   if (vec == NULL) {
-    fprintf()
+    fprintf(stderr, "ERROR! Could not allocate memory for vector.\n");
+    return NULL;
   }
   vec->size = size;
-  vec->data = (double*)malloc(size * sizeof(double));
-
+  vec->data = (double*)calloc(size, sizeof(double));
+  if (vec->data == NULL) {
+    free(vec);
+    fprintf(stderr, "ERROR! Could not allocate memory for vector data.\n");
+    return NULL;
+  }
   return vec;
 }
 
-double vec_norm(const double* vec, int size) {
+int delete_vector(Vector* vec) {
+  if (vec == NULL) {
+    fprintf(stderr, "ERROR! Attempting to delete NULL vector.\n");
+    return -1;
+  }
+
+  if (vec->data != NULL) {
+    memset(vec->data, 0, vec->size * sizeof(double));
+  }
+  free(vec->data);
+  free(vec);
+  return 0;
+}
+
+double vector_norm(const Vector* vec) {
   double sum = 0.0;
-  for (int i = 0; i < size; ++i) {
-    sum += vec[i] * vec[i];
+  for (int i = 0; i < vec->size; ++i) {
+    sum += vec->data[i] * vec->data[i];
   }
   return sqrt(sum);
 }
 
-void vec_subtract(const double* vec1, const double* vec2, double* result,
-                  int size) {
-  for (int i = 0; i < size; ++i) {
-    result[i] = vec1[i] - vec2[i];
+void vector_subtract(const Vector* vec1, const Vector* vec2, Vector* result) {
+  if (vec1->size != vec2->size || vec1->size != result->size ||
+      vec2->size != result->size) {
+    fprintf(stderr, "Error! Vectors must be of the same size.\n");
+    return NULL;
+  }
+  for (int i = 0; i < result->size; ++i) {
+    result->data[i] = vec1->data[i] - vec2->data[i];
   }
 }
 
-void vec_division(const double* vec1, const double* vec2, double* result,
-                  int size) {
-  for (int i = 0; i < size; ++i) {
-    result[i] = vec1[i] / vec2[i];
+void vector_divide(const Vector* vec1, const Vector* vec2, Vector* result) {
+  if (vec1->size != vec2->size || vec1->size != result->size ||
+      vec2->size != result->size) {
+    fprintf(stderr, "Error: Vectors must be of the same size.\n");
+    return NULL;
   }
+  for (int i = 0; i < result->size; ++i) {
+    result->data[i] = vec1->data[i] / vec2->data[i];
+  }
+  return result;
 }

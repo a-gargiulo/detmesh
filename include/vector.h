@@ -1,21 +1,19 @@
-#ifndef UTILITY_H
-#define UTILITY_H
-
+#ifndef VECTOR_H
+#define VECTOR_H
 
 typedef struct {
   int size;
-  double* data; 
+  double* data;
 } Vector;
 
-Vector* create_vector(int size);
+Vector* construct_vector(const int size);
 
-double vec_norm(const double* vec, double* result, int size);
+int delete_vector(Vector* vec);
 
-// Vector subtraction: result = vec1 - vec2
-void vec_subtract(const double* vec1, const double* vec2, int size);
+double vector_norm(const Vector* vec);
 
-// Element-wise division: result = vec1 / vec2
-void vec_division(const double* vec1, const double* vec2, double* result,
-                  int size);
+void vector_subtract(const Vector* vec1, const Vector* vec2, Vector* result);
 
-#endif  // UTILITY_H
+void vector_divide(const Vector* vec1, const Vector* vec2, Vector* result);
+
+#endif  // VECTOR_H
