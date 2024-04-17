@@ -1,8 +1,10 @@
 #ifndef DIAMOND_H
 #define DIAMOND_H
 
-#define MAXITER 100
+#include "vector.h"
 
+#define MAX_ITER 1000
+#define REL_TOL 1e-5
 
 typedef struct {
   float alpha;
@@ -15,6 +17,8 @@ double leading_edge(const double x, const float alpha);
 
 double trailing_edge(const double x, const float beta, const double l_d);
 
-void arc_constrain_functions(const double* x, const Geometry* geo, double* f);
+void arc_constrain_functions(const Vector* x, Vector* f, const Geometry* geo);
+
+Vector* calculate_arc_parameters(const Vector* x_guess, const Geometry* geo);
 
 #endif  // DIAMOND_H

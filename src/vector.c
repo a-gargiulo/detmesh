@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "utility.h"
+#include "vector.h"
 
 Vector* construct_vector(const int size) {
   Vector* vec = (Vector*)malloc(sizeof(Vector));
@@ -46,7 +46,7 @@ void vector_subtract(const Vector* vec1, const Vector* vec2, Vector* result) {
   if (vec1->size != vec2->size || vec1->size != result->size ||
       vec2->size != result->size) {
     fprintf(stderr, "Error! Vectors must be of the same size.\n");
-    return NULL;
+    // return NULL;
   }
   for (int i = 0; i < result->size; ++i) {
     result->data[i] = vec1->data[i] - vec2->data[i];
@@ -57,10 +57,9 @@ void vector_divide(const Vector* vec1, const Vector* vec2, Vector* result) {
   if (vec1->size != vec2->size || vec1->size != result->size ||
       vec2->size != result->size) {
     fprintf(stderr, "Error: Vectors must be of the same size.\n");
-    return NULL;
+    // return NULL;
   }
   for (int i = 0; i < result->size; ++i) {
     result->data[i] = vec1->data[i] / vec2->data[i];
   }
-  return result;
 }
