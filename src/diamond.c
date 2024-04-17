@@ -34,12 +34,17 @@ void arc_constrain_functions(const double* x, const Geometry* geo, double* f) {
 void calculate_arc_parameters(const double* x_guess, double* x, const Geometry* geo, int size) {
   double* x_old = (double*)malloc(size*sizeof(double));
   double* x_new = (double*)malloc(size*sizeof(double));
-  while(){
+  double* tmp_diff = (double*)malloc(size*sizeof(double));
+  memcpy(x_old, x_guess, size*sizeof(double)) 
+  while(vec_norm(tmp_diff, size)/vec_norm(x_new, size) > 1e-5){
+  
 
+    vec_subract(x_new, x_old, tmp_diff, size)
 
   }
   free(x_old);
   free(x_new);
+  free(tmp_rel_error);
 }
 
 
