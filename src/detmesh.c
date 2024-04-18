@@ -7,15 +7,15 @@
 
 #include "diamond.h"
 #include "parsing.h"
+
 int main(int argc, char** argv) {
-  Geometry geo;
   int n = 4;
+  Geometry geo;
   double* x = (double*)malloc(n * sizeof(double));
+  read_input(argv[1], &geo, x);
   double* fvec = (double*)calloc(n, sizeof(double));
 
-  read_input(argv[1], &geo, x); 
   typedef void (*Fcn)(int, double*, double*);
-
 
   Fcn fcn = arc_constraints;
   double tol = 1e-5;
