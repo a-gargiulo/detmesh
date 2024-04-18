@@ -1,94 +1,27 @@
-#include "diamond.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <stdio.h>
-#include <string.h>
 
-#include "vector.h"
+#include "diamond.h"
 
-double leading_edge(const double x, const float alpha) {
-  return tan(alpha * M_PI / 180) * x;
-}
+void arc_constraints(int n, double* x, double* fvec) {
+  float alpha = 7.5 * M_PI / 180.0;
+  float beta = 30 * M_PI / 180.0;
+  double l_d = 0.7;
+  double r = 0.0265;
 
-double trailing_edge(const double x, const float beta, const double l_d) {
-  return tan(beta * M_PI / 180) * (l_d - x);
-}
+  // float alpha = geo->alpha;
+  // float beta = geo->beta;
+  // double l_d = geo->l_d;
+  // double r = geo->r;
 
-void arc_constrain_functions(const Vector* x, Vector* f, const Geometry* geo) {
-  // if (f->size != 4) {
-  //   fprintf(stderr, "ERROR! The equation vector must be of size 4!\n");
-  //   return -1;
-  // }
-  f->data[0] =
-      (1 / 2.0 / x->data[2]) *
-      ((leading_edge(x->data[0], geo->alpha) - x->data[3]) *
-           (leading_edge(x->data[0], geo->alpha) - x->data[3]) +
-       x->data[0] * x->data[0] + x->data[2] * x->data[2] - geo->r * geo->r);
-  f->data[1] =
-      (1 / 2.0 / x->data[2]) *
-      ((trailing_edge(x->data[1], geo->beta, geo->l_d) - x->data[3]) *
-           (trailing_edge(x->data[1], geo->beta, geo->l_d) - x->data[3]) +
-       x->data[1] * x->data[1] + x->data[2] * x->data[2] - geo->r * geo->r);
-  f->data[2] =
-      x->data[0] - tan(geo->alpha * M_PI / 180) *
-                       (x->data[3] - tan(geo->alpha * M_PI / 180) * x->data[0]);
-  f->data[3] = trailing_edge(x->data[1], geo->beta, geo->l_d) -
-               (x->data[1] - x->data[2]) / tan(geo->beta * M_PI / 180);
-  // f->data[0] = (x->data[0] - x->data[2]) * (x->data[0] - x->data[2]) +
-  //              (leading_edge(x->data[0], geo->alpha) - x->data[3]) *
-  //                  (leading_edge(x->data[0], geo->alpha) - x->data[3]) -
-  //              geo->r * geo->r;
-  // f->data[1] =
-  //     (x->data[1] - x->data[2]) * (x->data[1] - x->data[2]) +
-  //     (trailing_edge(x->data[1], geo->beta, geo->l_d) - x->data[3]) *
-  //         (trailing_edge(x->data[1], geo->beta, geo->l_d) - x->data[3]) -
-  //     geo->r * geo->r;
-  // f->data[2] = x->data[0] * (x->data[2] - x->data[0]) +
-  //              leading_edge(x->data[0], geo->alpha) *
-  //                  (x->data[3] - leading_edge(x->data[0], geo->alpha));
-  // f->data[3] =
-  //     (geo->l_d - x->data[1]) * (x->data[1] - x->data[2]) -
-  //     trailing_edge(x->data[1], geo->beta, geo->l_d) *
-  //         (trailing_edge(x->data[1], geo->beta, geo->l_d) - x->data[3]);
-}
-
-Vector* calculate_arc_parameters(const Vector* x_guess, const Geometry* geo) {
-  Vector* x_old = construct_vector(x_guess->size);
-  Vector* x_new = construct_vector(x_guess->size);
-  Vector* rel_err = construct_vector(x_guess->size);
-
-  for (int i = 0; i < rel_err->size; ++i) {
-    rel_err->data[i] = 1;
-  }
-  memcpy(x_new->data, x_guess->data, x_new->size * sizeof(double));
-
-  int counter = 0;
-  while (counter < MAX_ITER) {
-    memcpy(x_old->data, x_new->data, x_old->size * sizeof(double));
-    printf("Iteration %d: ", counter+1);
-    for (int i = 0; i < 4; ++i) {
-      if (i==3){
-        printf("%.12f\n", x_new->data[i]);
-      }
-      else {
-        printf("%.12f, ", x_new->data[i]);
-      }
-    }
-    arc_constrain_functions(x_old, x_new, geo);
-    vector_subtract(x_new, x_old, rel_err);
-    vector_divide(rel_err, x_new, rel_err);
-    if (vector_norm(rel_err) < REL_TOL) {
-      printf("CONVERGED!\n");
-      break;
-    }
-    counter++;
-    if (counter >= MAX_ITER) {
-      printf("MAXIMUM ITER REACHED!\n");
-    }
-  }
-
-  delete_vector(x_old);
-  delete_vector(rel_err);
-
-  return x_new;
+  fvec[0] = (x[0] - x[2]) * (x[0] - x[2]) +
+            (tan(alpha) * x[0] - x[3]) * (tan(alpha) * x[0] - x[3]) - r * r;
+  fvec[1] =
+      (x[1] - x[2]) * (x[1] - x[2]) +
+      (tan(beta) * (l_d - x[1]) - x[3]) * (tan(beta) * (l_d - x[1]) - x[3]) -
+      r * r;
+  fvec[2] =
+      x[0] * (x[2] - x[0]) + tan(alpha) * x[0] * (x[3] - tan(alpha) * x[0]);
+  fvec[3] = (l_d - x[1]) * (x[1] - x[2]) -
+            tan(beta) * (l_d - x[1]) * (tan(beta) * (l_d - x[1]) - x[3]);
 }

@@ -1,0 +1,12 @@
+Leading Half Angle (deg) = 7.5e-3       
+Trailing Half Angle (deg) = 30 
+Length of Diamond (m) = 0.7
+Apex Radius of Curvature (m) = 0.0265
+
+# Initial guess for the computation of the apex's arc.
+# Provide a guess for the initial location of the arc's
+# [start point, end point, curvature center x, curvature center y],
+# as a percentage of the total diamond length.
+
+Initial Guess (% Length of Diamond) = [65, 70, 68, 1.0]
+
