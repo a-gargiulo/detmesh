@@ -1,5 +1,8 @@
 #ifndef FSOLVE_H
 #define FSOLVE_H
+
+#include <stdbool.h>
+
 void backward_euler_residual ( void dydt ( double t, double y[], double dy[] ), 
   int n, double to, double yo[], double tm, double ym[], double fm[] );
 void bdf2_residual ( void dydt ( double t, double y[], double dy[] ), 

@@ -15,9 +15,11 @@ file(GLOB SRCS "${PROJECT_SOURCE_DIR}/src/*.c")
 
 add_executable(detmesh ${SRCS})
 
+add_subdirectory("${PROJECT_SOURCE_DIR}/lib/fsolve")
 
 target_include_directories(detmesh
     PUBLIC "${PROJECT_SOURCE_DIR}/lib/gmsh/include/"
+    PUBLIC "${PROJECT_SOURCE_DIR}/lib/fsolve/include/"
     PUBLIC "${PROJECT_SOURCE_DIR}/include/"
 )
 
@@ -27,5 +29,6 @@ target_link_directories(detmesh
 
 target_link_libraries(detmesh
     PUBLIC gmsh
+    PUBLIC fsolve
 )
 

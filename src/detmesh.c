@@ -1,31 +1,53 @@
 #include <stdio.h>
-#include <gmshc.h>
-#include "diamond.h" 
-#include "vector.h"
+#include <stdlib.h>
+#define _USE_MATH_DEFINES
+#include <fsolve.h>
+#include <math.h>
+// #include <gmshc.h>
 
-int main(int argc, char **argv)
-{
+// #include "diamond.h"
+// #include "vector.h"
+void arc(int n, double* x, double* fvec) {
+  float alpha = 7.5 * M_PI / 180.0;
+  float beta = 30 * M_PI / 180.0;
+  double l_d = 0.7;
+  double r = 0.0265;
 
+  fvec[0] = (x[0] - x[2]) * (x[0] - x[2]) +
+            (tan(alpha) * x[0] - x[3]) * (tan(alpha) * x[0] - x[3]) - r * r;
+  fvec[1] =
+      (x[1] - x[2]) * (x[1] - x[2]) +
+      (tan(beta) * (l_d - x[1]) - x[3]) * (tan(beta) * (l_d - x[1]) - x[3]) -
+      r * r;
+  fvec[2] = x[0] * (x[2] - x[0]) + tan(alpha) * x[0] * (x[3] - tan(alpha) * x[0]);
+  fvec[3] = (l_d - x[1]) * (x[1] - x[2]) -
+         tan(beta) * (l_d - x[1]) * (tan(beta) * (l_d - x[1]) - x[3]);
+}
 
-  void f
+int main() {
+  typedef void (*Fcn)(int, double*, double*);
 
+  double l_d = 0.7;
+  int n = 4;
+  double* x = (double*)malloc(n * sizeof(double));
+  double* fvec = (double*)calloc(n, sizeof(double));
+  x[0] = 0.5;
+  x[1] = 0.55;
+  x[2] = 0.52;
+  x[3] = 0.01 * l_d;
+  Fcn fcn = arc;
+  double tol = 1e-5;
+  fsolve(fcn, n, x, fvec, tol);
 
-
-  int vec_size = 4;
-  Geometry geo; 
-  geo.alpha = 7.5; 
-  geo.beta = 30;
-  geo.l_d = 0.7;
-  geo.r = 0.0265;
-
-  Vector* x_guess = construct_vector(vec_size); 
-  x_guess->data[0] = 0.52;
-  x_guess->data[1] = 0.55;
-  x_guess->data[2] = 0.53;
-  x_guess->data[3] = 0.01;
-
-  Vector* arc_parameters = calculate_arc_parameters(x_guess, &geo);
-
-  delete_vector(arc_parameters);
+  for (int i = 0; i < n; ++i) {
+    if (i == 3){
+      printf("%.12f\n", x[i]);
+    }
+    else {
+      printf("%.12f, ", x[i]);
+    }
+  }
+  free(x);
+  free(fvec);
   return 0;
 }
