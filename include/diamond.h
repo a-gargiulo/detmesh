@@ -3,8 +3,8 @@
 
 #include "vector.h"
 
-#define MAX_ITER 1000
-#define REL_TOL 1e-5
+#define MAX_ITER 100000
+#define REL_TOL 1e-8
 
 typedef struct {
   float alpha;
