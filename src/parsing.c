@@ -62,7 +62,7 @@ int firstNonSpaceIndex(const char *str) {
 }
 
 
-int read_input(const char* filename, Geometry* geo, double* x_guess) {
+int read_input(const char* filename, Diamond* diamond, double* x_guess) {
   FILE* pFile;
   pFile = fopen(filename, "r");
 
@@ -92,25 +92,25 @@ int read_input(const char* filename, Geometry* geo, double* x_guess) {
     trim(&num);
     prepare_var(var);
 
-    printf("%s\n", var);
-    printf("%s\n", num);
+    // printf("%s\n", var);
+    // printf("%s\n", num);
     if (strcmp(var, "leading_half_angle") == 0) {
-      geo->alpha = atof(num);
+      diamond->alpha = atof(num);
     } else if (strcmp(var, "trailing_half_angle") == 0) {
-      geo->beta = atof(num);
+      diamond->beta = atof(num);
     } else if (strcmp(var, "apex_radius_of_curvature") == 0) {
       char* endptr1;
-      geo->r = strtod(num, &endptr1);
+      diamond->r = strtod(num, &endptr1);
     } else if (strcmp(var, "length_of_diamond") == 0) {
       char* endptr2;
-      geo->l_d = strtod(num, &endptr2);
+      diamond->l_d = strtod(num, &endptr2);
     } else if (strcmp(var, "initial_guess") == 0) {
       char* list;
       char* delims = "[,]";
       list = strtok(num, delims);
       int counter = 0;
       while (list != NULL) {
-        x_guess[counter] = atof(list) / 100.0 * geo->l_d;
+        x_guess[counter] = atof(list) / 100.0 * diamond->l_d;
         list = strtok(NULL, "[,]");
         counter++;
       }

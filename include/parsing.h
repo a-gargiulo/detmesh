@@ -11,6 +11,6 @@ int firstNonSpaceIndex(const char* str);
 
 int prepare_var(char* str);
 
-int read_input(const char* filename, Geometry* geo, double* x_guess);
+int read_input(const char* filename, Diamond* diamond, double* x_guess);
 
 #endif  // PARSING_H
