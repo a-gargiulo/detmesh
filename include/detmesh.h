@@ -2,6 +2,6 @@
 #define DETMESH_H
 
 
-void run(const char* input_file);
+void run(int argc, char** argv);
 
 #endif // DETMESH_H

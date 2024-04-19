@@ -1,6 +1,6 @@
 #include "detmesh.h"
 
 int main(int argc, char** argv) {
-  run(argv[1]);
+  run(argc, argv);
   return 0;
 }
