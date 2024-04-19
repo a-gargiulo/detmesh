@@ -1,6 +1,5 @@
 #include "detmesh.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "diamond.h"

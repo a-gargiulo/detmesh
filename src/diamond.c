@@ -3,6 +3,7 @@
 #define _USE_MATH_DEFINES
 #define REL_TOL 1e-8
 
+#include <fsolve.h>
 #include <math.h>
 #include <stdlib.h>
 

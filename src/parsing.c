@@ -74,7 +74,6 @@ int read_input(const char* filename, Diamond* diamond, double* x_guess) {
   char* var;
 
   while (fgets(buffer, BUFFER_SIZE, pFile) != NULL) {
-
     int idx = get_first_non_space_index(buffer);
     if (buffer[idx] == '#' || buffer[idx] == '\n') {
       continue;
