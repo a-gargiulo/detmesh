@@ -2,17 +2,13 @@
 #include <math.h>
 
 #include "diamond.h"
-#include "parsing.h"
 
-void arc_constraints(int n, double* x, double* fvec) {
-  float alpha = 7.5 * M_PI / 180;
-  float beta = 30 * M_PI / 180;
-  double l_d = 0.7; 
-  double r = 0.0265; 
-  // float alpha = geo->alpha;
-  // float beta = geo->beta; 
-  // double l_d = geo->l_d; 
-  // double r = geo->r;
+void arc_constraints(int n, double* x, double* fvec, int n_xtra_args, double* args) {
+  double alpha = args[0] * M_PI / 180.0;
+  double beta = args[1] * M_PI / 180.0;
+  double l_d = args[2]; 
+  double r = args[3]; 
+
   fvec[0] = (x[0] - x[2]) * (x[0] - x[2]) +
             (tan(alpha) * x[0] - x[3]) * (tan(alpha) * x[0] - x[3]) - r * r;
   fvec[1] =

@@ -15,11 +15,17 @@ int main(int argc, char** argv) {
   read_input(argv[1], &geo, x);
   double* fvec = (double*)calloc(n, sizeof(double));
 
-  typedef void (*Fcn)(int, double*, double*);
+  typedef void (*Fcn)(int, double*, double*, int, double*);
 
   Fcn fcn = arc_constraints;
   double tol = 1e-5;
-  fsolve(fcn, n, x, fvec, tol);
+  int n_xtra_args = 4;
+  double* args = (double*)malloc(n_xtra_args * sizeof(double)); 
+  args[0] = geo.alpha;
+  args[1] = geo.beta;
+  args[2] = geo.l_d;
+  args[3] = geo.r;
+  fsolve(fcn, n, x, fvec, tol, n_xtra_args, args);
 
   for (int i = 0; i < n; ++i) {
     if (i == 3) {
@@ -30,5 +36,6 @@ int main(int argc, char** argv) {
   }
   free(x);
   free(fvec);
+  free(args);
   return 0;
 }

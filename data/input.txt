@@ -1,4 +1,4 @@
-Leading Half Angle (deg) = 7.5e-3       
+Leading Half Angle (deg) = 7.5       
 Trailing Half Angle (deg) = 30 
 Length of Diamond (m) = 0.7
 Apex Radius of Curvature (m) = 0.0265

@@ -3,7 +3,6 @@
 # include <stdbool.h>
 # include <stdio.h>
 # include <stdlib.h>
-
 # include "fsolve.h"
 
 /******************************************************************************/
@@ -426,9 +425,9 @@ double enorm ( int n, double x[] )
 }
 /******************************************************************************/
 
-void fdjac1 ( void fcn ( int n, double x[], double f[] ),
+void fdjac1 ( void fcn ( int n, double x[], double f[], int n_xtra_args, double args[]),
   int n, double x[], double fvec[], double fjac[], int ldfjac,
-  int ml, int mu, double epsfcn, double wa1[], double wa2[] )
+  int ml, int mu, double epsfcn, double wa1[], double wa2[], int n_xtra_args, double args[])
 
 /******************************************************************************/
 /*
@@ -520,6 +519,8 @@ void fdjac1 ( void fcn ( int n, double x[], double f[] ),
 /*
   Computation of dense approximate jacobian.
 */
+
+
   if ( n <= msum )
   {
     for ( j = 0; j < n; j++ )
@@ -531,7 +532,7 @@ void fdjac1 ( void fcn ( int n, double x[], double f[] ),
         h = eps;
       }
       x[j] = temp + h;
-      fcn ( n, x, wa1 );
+      fcn ( n, x, wa1, n_xtra_args, args );
       x[j] = temp;
       for ( i = 0; i < n; i++ )
       {
@@ -556,7 +557,7 @@ void fdjac1 ( void fcn ( int n, double x[], double f[] ),
         }
         x[j] = wa2[j] + h;
       }
-      fcn ( n, x, wa1 );
+      fcn ( n, x, wa1, n_xtra_args, args );
       for ( j = k; j < n; j = j + msum )
       {
         x[j] = wa2[j];
@@ -1047,8 +1048,8 @@ void fdjac_tr ( void dydt ( double t, double x[], double f[] ),
 }
 /******************************************************************************/
 
-int fsolve ( void fcn ( int n, double x[], double fvec[] ), int n, double x[], 
-  double fvec[], double tol )
+int fsolve ( void fcn ( int n, double x[], double fvec[], int n_xtra_args, double args[] ), int n, double x[], 
+  double fvec[], double tol, int n_xtra_args, double args[] )
 
 /******************************************************************************/
 /*
@@ -1163,7 +1164,7 @@ int fsolve ( void fcn ( int n, double x[], double fvec[] ), int n, double x[],
 
   info = hybrd ( fcn, n, x, fvec, xtol, maxfev, ml, mu, epsfcn, wa, mode,
     factor, nfev, wa+index, n, wa+6*n, lr,
-    wa+n, wa+2*n, wa+3*n, wa+4*n, wa+5*n );
+    wa+n, wa+2*n, wa+3*n, wa+4*n, wa+5*n, n_xtra_args, args );
 
   if ( info == 5 )
   {
@@ -1569,12 +1570,12 @@ int fsolve_tr ( void dydt ( double t, double x[], double f[] ), int n,
 }
 /******************************************************************************/
 
-int hybrd ( void fcn ( int n, double x[], double fvec[] ),
+int hybrd ( void fcn ( int n, double x[], double fvec[], int n_xtra_args, double args[] ),
   int n, double x[],
   double fvec[], double xtol, int maxfev, int ml, int mu, double epsfcn,
   double diag[], int mode, double factor, int nfev,
   double fjac[], int ldfjac, double r[], int lr, double qtf[], double wa1[],
-  double wa2[], double wa3[], double wa4[] )
+  double wa2[], double wa3[], double wa4[], int n_xtra_args, double args[] )
 
 /******************************************************************************/
 /*
@@ -1790,7 +1791,7 @@ int hybrd ( void fcn ( int n, double x[], double fvec[] ),
 /*
   Evaluate the function at the starting point and calculate its norm.
 */
-  fcn ( n, x, fvec );
+  fcn ( n, x, fvec, n_xtra_args, args );
   nfev = 1;
 
   fnorm = enorm ( n, fvec );
@@ -1822,7 +1823,7 @@ int hybrd ( void fcn ( int n, double x[], double fvec[] ),
 /*
   Calculate the jacobian matrix.
 */
-    fdjac1 ( fcn, n, x, fvec, fjac, ldfjac,  ml, mu, epsfcn, wa1, wa2 );
+    fdjac1 ( fcn, n, x, fvec, fjac, ldfjac,  ml, mu, epsfcn, wa1, wa2, n_xtra_args, args );
 
     nfev = nfev + msum;
 /*
@@ -1953,7 +1954,7 @@ int hybrd ( void fcn ( int n, double x[], double fvec[] ),
 /*
   Evaluate the function at X + P and calculate its norm.
 */
-      fcn ( n, wa2, wa4 );
+      fcn ( n, wa2, wa4, n_xtra_args, args );
       nfev = nfev + 1;
       fnorm1 = enorm ( n, wa4 );
 /*

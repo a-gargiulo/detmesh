@@ -11,9 +11,9 @@ void bdf2_residual ( void dydt ( double t, double y[], double dy[] ),
 void dogleg ( int n, double r[], int lr, double diag[], double qtb[],
   double delta, double x[], double wa1[], double wa2[] );
 double enorm ( int n, double x[] );
-void fdjac1 ( void fcn ( int n, double x[], double f[] ), 
+void fdjac1 ( void fcn ( int n, double x[], double f[], int n_xtra_args, double args[] ), 
   int n, double x[], double fvec[], double fjac[], int ldfjac,
-  int ml, int mu, double epsfcn, double wa1[], double wa2[] );
+  int ml, int mu, double epsfcn, double wa1[], double wa2[], int n_xtra_args, double args[] ); // Added Args - Aldo Gargiulo, 04/18/24
 void fdjac_bdf2 ( void dydt ( double t, double x[], double f[] ),
   int n, double t1, double x1[], double t2, double x2[], double t3, 
   double x3[], double fvec[], double fjac[], int ldfjac, int ml, int mu, 
@@ -26,8 +26,8 @@ void fdjac_tr ( void dydt ( double t, double x[], double f[] ),
   int n, double to, double xo[], double tn, double xn[], double fvec[], 
   double fjac[], int ldfjac, int ml, int mu, double epsfcn, double wa1[], 
   double wa2[] );
-int fsolve ( void fcn ( int n, double x[], double fvec[] ), int n, 
-  double x[], double fvec[], double tol );
+int fsolve ( void fcn ( int n, double x[], double fvec[], int n_xtra_args, double args[] ), int n, 
+  double x[], double fvec[], double tol, int n_xtra_args, double args[] );
 int fsolve_bdf2 ( void dydt ( double t, double x[], double f[] ), int n, 
   double t1, double x1[], double t2, double x2[], double t3, double x3[], 
   double fvec[], double tol );
@@ -35,11 +35,11 @@ int fsolve_be ( void dydt ( double t, double x[], double f[] ), int n,
   double to, double xo[], double t, double x[], double fvec[], double tol );
 int fsolve_tr ( void dydt ( double t, double x[], double f[] ), int n, 
   double to, double xo[], double tn, double xn[], double fvec[], double tol );
-int hybrd ( void fcn ( int n, double x[], double fvec[] ), 
+int hybrd ( void fcn ( int n, double x[], double fvec[], int n_xtra_args, double args[] ), 
   int n, double x[], double fvec[], double xtol, int maxfev, int ml, 
   int mu, double epsfcn, double diag[], int mode, double factor, 
   int nfev, double fjac[], int ldfjac, double r[], int lr, double qtf[], 
-  double wa1[], double wa2[], double wa3[], double wa4[] );
+  double wa1[], double wa2[], double wa3[], double wa4[], int n_xtra_args, double args[] );
 int hybrd_bdf2 ( void dydt ( double t, double x[], double f[] ), int n, 
   double t1, double x1[], double t2, double x2[], double t3, double x3[],
   double fvec[], double xtol, int maxfev, int ml, int mu, double epsfcn,
