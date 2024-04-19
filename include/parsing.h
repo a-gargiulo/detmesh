@@ -1,10 +1,16 @@
 #ifndef PARSING_H
 #define PARSING_H
 
+#define BUFFER_SIZE 100
+
 #include "diamond.h"
 
-char* trim(const char* str);
-char* prepare_var(const char* str);
-int read_input(const char* filename, Geometry* geo, double* x);
+int trim(char* str);
+
+int firstNonSpaceIndex(const char* str);
+
+int prepare_var(char* str);
+
+int read_input(const char* filename, Geometry* geo, double* x_guess);
 
 #endif  // PARSING_H

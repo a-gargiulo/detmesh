@@ -7,99 +7,118 @@
 
 #include "diamond.h"
 
-char* trim(const char* str) {
-  int original_length = strlen(str);
 
-  int start = 0;
-  while (str[start] == ' ') {
-    start++;
+
+int trim(char* str) {
+  if (str == NULL) {
+    printf("Error: String pointer is NULL.\n");
+    return 1;
   }
 
-  int end = original_length - 1;
-  while (str[end] == ' ') {
+
+  // Trim leading whitespace
+  while (isspace(*str)) {
+    str++;
+  }
+
+  // if (*str == '\0') {
+    // *str = '\0';
+    // return 0;
+  // }
+
+  // Trim trailing whitespace
+  char *end = str + strlen(str) - 1;
+  while (end > str && isspace(*end)) {
     end--;
   }
+  *(end+1) = '\0';
 
-  int new_length = end - start + 1;
-  char* trimmed_str = (char*)malloc((new_length + 1) * sizeof(char));
-
-  int j = 0;
-  for (int i = start; i <= end; ++i) {
-    trimmed_str[j] = str[i];
-    j++;
-  }
-  trimmed_str[j] = '\0';
-  return trimmed_str;
+  return 0;
 }
 
-char* prepare_var(const char* str) {
+
+int prepare_var(char* str) {
   int len = strlen(str);
-  char* lower_str = (char*)malloc((len + 1) * sizeof(char));
-  strcpy(lower_str, str);
   for (int i = 0; i < len; i++) {
-    lower_str[i] = tolower(lower_str[i]);
-    if (lower_str[i] == ' ') {
-      lower_str[i] = '_';
+    str[i] = tolower(str[i]);
+    if (isspace(str[i])) {
+      str[i] = '_';
     }
   }
 
-  return lower_str;
+  return 0;
 }
 
-int read_input(const char* filename, Geometry* geo, double* x) {
+
+int firstNonSpaceIndex(const char *str) {
+    int index = 0;
+    if (str[index] == '\n')
+    {
+      return index;
+    }
+    while (str[index] != '\0' && isspace(str[index])) {
+        index++;
+    }
+    return index;
+}
+
+
+int read_input(const char* filename, Geometry* geo, double* x_guess) {
   FILE* pFile;
-  char line[100];
   pFile = fopen(filename, "r");
+
   if (pFile == NULL) {
     fprintf(stderr, "ERROR: Could not open file!\n");
     return 1;
   }
 
-  char* var;
+  char buffer[BUFFER_SIZE];
+
+  char* tmp;
   char* num;
-  char* token;
-  char* delim = "=\n";
-  while (fgets(line, sizeof(line), pFile) != NULL) {
-    char* trim_line = trim(line);
-    if (trim_line[0] == '#' || trim_line[0] == '\n') {
+  char* var;
+  while (fgets(buffer, BUFFER_SIZE, pFile) != NULL) {
+    // trim(buffer);
+
+    int idx = firstNonSpaceIndex(buffer);
+    // if (buffer[idx] == '#' || buffer[0]=='\n') {
+    if (buffer[idx] == '#'|| buffer[idx]=='\n') {
       continue;
     }
-    token = strtok(line, delim);
-    num = strtok(NULL, delim);
-    var = strtok(token, "(");
 
-    char* trim_var = trim(var);
-    char* trim_num = trim(num);
-    char* prep_var = prepare_var(trim_var);
+    var = strtok(buffer, "(=");
+    strtok(NULL, "(=");
+    num = strtok(NULL, "(=");
+    char tt[] = "     test        ";
+    trim(tt);
+    printf("%s\n", tt);
+    trim(var);
+    trim(num);
+    prepare_var(var);
 
-    // printf("%s\n", prep_var);
-    // printf("%s\n", trim_num);
-    // printf("%d\n", strcmp(prep_var, "trailing_half_angle"));
-    if (strcmp(prep_var, "leading_half_angle") == 0) {
-      geo->alpha = atof(trim_num);
-    } else if (strcmp(prep_var, "trailing_half_angle") == 0) {
-      geo->beta = atof(trim_num);
-    } else if (strcmp(prep_var, "apex_radius_of_curvature") == 0) {
+    printf("%s\n", var);
+    printf("%s\n", num);
+    if (strcmp(var, "leading_half_angle") == 0) {
+      geo->alpha = atof(num);
+    } else if (strcmp(var, "trailing_half_angle") == 0) {
+      geo->beta = atof(num);
+    } else if (strcmp(var, "apex_radius_of_curvature") == 0) {
       char* endptr1;
-      geo->r = strtod(trim_num, &endptr1);
-    } else if (strcmp(prep_var, "length_of_diamond") == 0) {
+      geo->r = strtod(num, &endptr1);
+    } else if (strcmp(var, "length_of_diamond") == 0) {
       char* endptr2;
-      geo->l_d = strtod(trim_num, &endptr2);
-    } else if (strcmp(prep_var, "initial_guess") == 0) {
+      geo->l_d = strtod(num, &endptr2);
+    } else if (strcmp(var, "initial_guess") == 0) {
       char* list;
       char* delims = "[,]";
-      list = strtok(trim_num, delims);
+      list = strtok(num, delims);
       int counter = 0;
       while (list != NULL) {
-        x[counter] = atof(list) / 100.0 * geo->l_d;
+        x_guess[counter] = atof(list) / 100.0 * geo->l_d;
         list = strtok(NULL, "[,]");
         counter++;
       }
     }
-    free(trim_var);
-    free(trim_num);
-    free(trim_line);
-    free(prep_var);  // }
   }
   fclose(pFile);
   return 0;
