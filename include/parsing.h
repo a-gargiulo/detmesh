@@ -5,7 +5,7 @@
 
 #include "diamond.h"
 
-int trim(char* str);
+int trim(char** str);
 
 int firstNonSpaceIndex(const char* str);
 

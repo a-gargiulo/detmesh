@@ -7,28 +7,27 @@
 
 #include "diamond.h"
 
-
-
-int trim(char* str) {
-  if (str == NULL) {
+int trim(char** str) {
+  // Works with string literals
+  if (*str == NULL) {
     printf("Error: String pointer is NULL.\n");
     return 1;
   }
 
-
   // Trim leading whitespace
-  while (isspace(*str)) {
-    str++;
+  while (isspace(**str)) {
+    (*str)++;
   }
 
-  // if (*str == '\0') {
-    // *str = '\0';
-    // return 0;
-  // }
+  if (**str == '\0') {
+    **str = '\0';
+    return 0;
+  }
 
   // Trim trailing whitespace
-  char *end = str + strlen(str) - 1;
-  while (end > str && isspace(*end)) {
+  char *end = *str + strlen(*str) - 1;
+  while (end > *str && isspace(*end)) {
+  // while (end > *str && *end == '-') {
     end--;
   }
   *(end+1) = '\0';
@@ -89,11 +88,8 @@ int read_input(const char* filename, Geometry* geo, double* x_guess) {
     var = strtok(buffer, "(=");
     strtok(NULL, "(=");
     num = strtok(NULL, "(=");
-    char tt[] = "     test        ";
-    trim(tt);
-    printf("%s\n", tt);
-    trim(var);
-    trim(num);
+    trim(&var);
+    trim(&num);
     prepare_var(var);
 
     printf("%s\n", var);
