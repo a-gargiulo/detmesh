@@ -1,6 +1,8 @@
 #include "detmesh.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "diamond.h"
 #include "parsing.h"
 
@@ -14,5 +16,4 @@ void run(const char* input_file) {
 
   free(x_init);
   free(diamond);
-
 }

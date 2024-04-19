@@ -20,23 +20,20 @@ int trim(char** str) {
   }
 
   if (**str == '\0') {
-    **str = '\0';
     return 0;
   }
 
   // Trim trailing whitespace
-  char *end = *str + strlen(*str) - 1;
+  char* end = *str + strlen(*str) - 1;
   while (end > *str && isspace(*end)) {
-  // while (end > *str && *end == '-') {
     end--;
   }
-  *(end+1) = '\0';
+  *(end + 1) = '\0';
 
   return 0;
 }
 
-
-int prepare_var(char* str) {
+int format_variable_name(char* str) {
   int len = strlen(str);
   for (int i = 0; i < len; i++) {
     str[i] = tolower(str[i]);
@@ -48,19 +45,19 @@ int prepare_var(char* str) {
   return 0;
 }
 
+int get_first_non_space_index(const char* str) {
+  int index = 0;
 
-int firstNonSpaceIndex(const char *str) {
-    int index = 0;
-    if (str[index] == '\n')
-    {
-      return index;
-    }
-    while (str[index] != '\0' && isspace(str[index])) {
-        index++;
-    }
+  if (str[index] == '\n') {
     return index;
-}
+  }
 
+  while (str[index] != '\0' && isspace(str[index])) {
+    index++;
+  }
+
+  return index;
+}
 
 int read_input(const char* filename, Diamond* diamond, double* x_guess) {
   FILE* pFile;
@@ -72,16 +69,14 @@ int read_input(const char* filename, Diamond* diamond, double* x_guess) {
   }
 
   char buffer[BUFFER_SIZE];
-
   char* tmp;
   char* num;
   char* var;
-  while (fgets(buffer, BUFFER_SIZE, pFile) != NULL) {
-    // trim(buffer);
 
-    int idx = firstNonSpaceIndex(buffer);
-    // if (buffer[idx] == '#' || buffer[0]=='\n') {
-    if (buffer[idx] == '#'|| buffer[idx]=='\n') {
+  while (fgets(buffer, BUFFER_SIZE, pFile) != NULL) {
+
+    int idx = get_first_non_space_index(buffer);
+    if (buffer[idx] == '#' || buffer[idx] == '\n') {
       continue;
     }
 
@@ -90,10 +85,8 @@ int read_input(const char* filename, Diamond* diamond, double* x_guess) {
     num = strtok(NULL, "(=");
     trim(&var);
     trim(&num);
-    prepare_var(var);
+    format_variable_name(var);
 
-    // printf("%s\n", var);
-    // printf("%s\n", num);
     if (strcmp(var, "leading_half_angle") == 0) {
       diamond->alpha = atof(num);
     } else if (strcmp(var, "trailing_half_angle") == 0) {

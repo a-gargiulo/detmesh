@@ -1,13 +1,12 @@
 #include "diamond.h"
-#include <stdlib.h>
 
 #define _USE_MATH_DEFINES
 #define REL_TOL 1e-8
 
 #include <math.h>
+#include <stdlib.h>
 
 typedef void (*Fcn)(int, double*, double*, int, double*);
-
 
 void arc_constraints(int n, double* x, double* fvec, int n_xtra_args,
                      double* args) {
@@ -31,13 +30,14 @@ void arc_constraints(int n, double* x, double* fvec, int n_xtra_args,
             tan(beta) * (l_d - x[1]) * (tan(beta) * (l_d - x[1]) - x[3]);
 }
 
-
-void calculate_arc_parameters(int n_arc_parameters, double* x_init, Diamond* diamond) {
+void calculate_arc_parameters(int n_arc_parameters, double* x_init,
+                              Diamond* diamond) {
   Fcn fcn = arc_constraints;
+
   double rel_tol = REL_TOL;
   int n_xtra_args = 4;
-  double* args = (double*)malloc(n_xtra_args * sizeof(double));
   double* fvec = (double*)malloc(n_arc_parameters * sizeof(double));
+  double* args = (double*)malloc(n_xtra_args * sizeof(double));
   args[0] = diamond->alpha;
   args[1] = diamond->beta;
   args[2] = diamond->l_d;
@@ -49,7 +49,6 @@ void calculate_arc_parameters(int n_arc_parameters, double* x_init, Diamond* dia
   diamond->x2 = x_init[1];
   diamond->cx = x_init[2];
   diamond->cy = x_init[3];
-
 
   free(args);
   free(fvec);

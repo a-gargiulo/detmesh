@@ -7,9 +7,9 @@
 
 int trim(char** str);
 
-int firstNonSpaceIndex(const char* str);
+int get_first_non_space_index(const char* str);
 
-int prepare_var(char* str);
+int format_variable_name(char* str);
 
 int read_input(const char* filename, Diamond* diamond, double* x_guess);
 
