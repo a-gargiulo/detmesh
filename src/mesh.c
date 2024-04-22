@@ -11,10 +11,14 @@
 #include "diamond.h"
 
 void mesh_diamond(int argc, char** argv, Diamond* diamond) {
+  // Mesh parameters
   double tw_b_up = 0.2; 
-  double tw_b_down = 0.2; 
+  double tw_b_down = 0.2;
   double t_height = 0.1016; 
+  double l_blk_1 = 0.16;
 
+  // Checks
+  
 
 
   int ierr;
@@ -86,6 +90,7 @@ void mesh_diamond(int argc, char** argv, Diamond* diamond) {
   // gmshModelGeoExtrude(dimTags, dimTags_n, 0, 0.05, 0, &outDimTags, &outDimTags_n, numElements, numElements_n, heights, heights_n, recombine, &ierr);
   gmshModelGeoExtrudeBoundaryLayer(dimTags, dimTags_n, &outDimTags, &outDimTags_n, numElements, numElements_n, heights, heights_n, recombine, second, viewIndex, &ierr);  
 
+  gmshFree(outDimTags);
 
   double ratio2 = 1.1;
   double d_w2 = 1e-6;
@@ -119,45 +124,39 @@ void mesh_diamond(int argc, char** argv, Diamond* diamond) {
   
 
   gmshModelGeoExtrudeBoundaryLayer(dimTags2, dimTags_n2, &outDimTags2, &outDimTags_n2, numElements2, numElements_n2, heights2, heights_n2, recombine2, second2, viewIndex2, &ierr);
+  gmshFree(outDimTags2);
+ 
 
 
-
-
-
-  int* outDimTags_t = NULL;
-  size_t outDimTags_n_t;
-  // gmshModelGeoCopy(dimTags, dimTags_n, &outDimTags_t, &outDimTags_n_t, &ierr);
-  for (size_t i = 0; i < outDimTags_n; ++i) {
-    printf("%d\n", outDimTags[i]);
-  }
-
-  // printf("HEIGHT = %.8f\n", heights[heights_n]);
-  // gmshModelGeoTranslate(outDimTags_t, outDimTags_n_t, 0.0, -heights[heights_n-1], 0.0, &ierr);
-
-
-  // Extruded curves bottom 7, 11, 15, 19, 23
-  // gmshModelGeoAddLine(12, 13, 100, &ierr); // curve 7
-  // gmshModelGeoAddLine(13, 17, 101, &ierr); // curve 11
-  // gmshModelGeoAddCircleArc(17, 4, 22, 102, 0, 0, 0, &ierr); // curve 15
-  // gmshModelGeoAddLine(22, 26, 103, &ierr); // curve 19
-  // gmshModelGeoAddLine(26, 30, 104, &ierr); // curve 23 
-  // Extruded curves top 27
-  // gmshModelGeoAddLine(33, 34, 105, &ierr); // curve 27
-  
-
-  gmshModelGeoAddLine(12, 33, 100, &ierr); // curve 7
-  gmshModelGeoAddLine(30, 34, 101, &ierr); // curve 7
-
-  int loopTags[] = {7, 11, 15, 19, 23, 101, -27, -100};
-  // int loopTags[] = {-101, -23, -19, -15, -11, -7, 100, 27};
-  gmshModelGeoAddCurveLoop(loopTags, 8, 1, 0 ,&ierr);
+    gmshModelGeoSynchronize(&ierr);
+  gmshModelGeoAddLine(30, 34, 999, &ierr);
+  gmshModelGeoAddLine(12, 33, 1000, &ierr);
+  gmshModelGeoSynchronize(&ierr);
+  int curveTags[] = {7, 11, 15, 19, 23, 999, -27, -1000};
+  size_t curveTags_n = 8;
+  gmshModelGeoAddCurveLoop(curveTags, curveTags_n, 1, 0, &ierr);
   int wireTags[] = {1};
-  gmshModelGeoAddPlaneSurface(wireTags, 1, 1, &ierr);
-
+  size_t wireTags_n = 1;
+  gmshModelGeoAddPlaneSurface(wireTags, wireTags_n, 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1000, 100, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(999, 100, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(6, 200, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(1, 21, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(2, 61, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(3, 41, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(4, 41, "Progression", 1, &ierr); 
+  gmshModelGeoMeshSetTransfiniteCurve(5, 40, "Progression", 1, &ierr); 
+  // gmshModelGeoMeshSetRecombine(2, 1, 90, &ierr);
+  int cornerTags[] = {12, 30, 34, 33};
+  gmshModelGeoMeshSetTransfiniteSurface(1, "Left", &cornerTags, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2, 1, 90, &ierr);
   gmshModelGeoSynchronize(&ierr);
   gmshModelMeshGenerate(2,&ierr);
-
   
+  // int loopTags[] = {7, 11, 15, 19, 23, 101, -27, -100};
+  // gmshModelGeoAddCurveLoop(loopTags, 8, 1, 0 ,&ierr);
+  // int wireTags[] = {1};
+  // gmshModelGeoAddPlaneSurface(wireTags, 1, 1, &ierr);
   gmshWrite("diamond.msh", &ierr);
 
   int gui = 1;
