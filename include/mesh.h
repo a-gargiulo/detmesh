@@ -3,7 +3,7 @@
 
 #include "diamond.h"
 
-void mesh_diamond(int argc, char** argv, Diamond* diamond);
+int mesh_diamond(int argc, char** argv, Diamond* diamond);
 
 
 #endif // MESH_H
