@@ -4,7 +4,7 @@
 typedef struct {
   double alpha;
   double beta;
-  double l_d;
+  double l;
   double r;
   double x1;
   double x2;

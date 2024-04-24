@@ -95,14 +95,14 @@ int read_input(const char* filename, Diamond* diamond, double* x_guess) {
       diamond->r = strtod(num, &endptr1);
     } else if (strcmp(var, "length_of_diamond") == 0) {
       char* endptr2;
-      diamond->l_d = strtod(num, &endptr2);
+      diamond->l = strtod(num, &endptr2);
     } else if (strcmp(var, "initial_guess") == 0) {
       char* list;
       char* delims = "[,]";
       list = strtok(num, delims);
       int counter = 0;
       while (list != NULL) {
-        x_guess[counter] = atof(list) / 100.0 * diamond->l_d;
+        x_guess[counter] = atof(list) / 100.0 * diamond->l;
         list = strtok(NULL, "[,]");
         counter++;
       }
