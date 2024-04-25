@@ -71,57 +71,71 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
     gmshModelGeoAddPoint(sPts[i], sPts[i + 1], 0, DEFAULT_CELL_SIZE, ++tagCount, &ierr);
   }
 
-  // Add bottom lines (1 - 12) 
+  // Add bottom lines (1 - 11) 
+  tagCount = 0;
   for (size_t i = 1; i < sPts_n / 2; ++i) {
     if (i == 6)
-      gmshModelGeoAddCircleArc(i, i + 1, i + 2, i, 0, 0, 0, &ierr);
+      gmshModelGeoAddCircleArc(i, i + 1, i + 2, ++tagCount, 0, 0, 0, &ierr);
     else if (i == 7)
       continue;
     else
-      gmshModelGeoAddLine(i, i + 1, i, &ierr);
+      gmshModelGeoAddLine(i, i + 1, ++tagCount, &ierr);
   }
 
   // Extrude bottom boundary layer
-  // double ratio = 1.05;
-  // double d_w = -1e-6;
+  double sBlRatio = 1.05;
+  double sBlW = -1e-6;
 
-  // // int dimTags[] = {1, 1};
-  // // size_t dimTags_n = 2;
-  // int dimTags[] = {1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11};
-  // size_t dimTags_n = 22;
+  int sBlTags[] = {1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11};
+  size_t sBlTags_n = 22;
 
-  // int* outDimTags = NULL;
-  // size_t outDimTags_n;
+  int* sBlOutTags = NULL;
+  size_t sBlOutTags_n;
 
-  // size_t numElements_n = 100;
-  // int numElements[100];
-  // for (size_t i = 0; i < numElements_n; ++i) {
-  //   numElements[i] = 1;
-  // }
+  size_t sBlSteps = 100;
+  int sBlElementsPerStep[100];
+  for (size_t i = 0; i < sBlSteps; ++i) {
+    sBlElementsPerStep[i] = 1;
+  }
 
-  // size_t heights_n = 100;
-  // double heights[100];
-  // for (size_t i = 0; i < heights_n; ++i) {
-  //   if (i == 0) {
-  //     heights[i] = d_w;
-  //   } else {
-  //     heights[i] = heights[i - 1] - (-d_w) * pow(ratio, i);
-  //   }
-  // }
+  size_t sBlHeights_n = 100;
+  double sBlHeights[100];
+  for (size_t i = 0; i < sBlHeights_n; ++i) {
+    if (i == 0) {
+      sBlHeights[i] = sBlW;
+    } else {
+      sBlHeights[i] = sBlHeights[i - 1] - (-sBlW) * pow(sBlRatio, i);
+    }
+  }
 
-  // int recombine = 1;
-  // int second = 0;
-  // int viewIndex = -1;
+  int recombine = 1;
+  int second = 0;
+  int viewIndex = -1;
 
-  // gmshModelGeoExtrudeBoundaryLayer(
-  //     dimTags, dimTags_n, &outDimTags, &outDimTags_n, numElements,
-  //     numElements_n, heights, heights_n, recombine, second, viewIndex,
-  //     &ierr);
+  // c12 p(16 17), c16 p(17 21), c20 p(21 25), c24 p(25 29), c28 p(29, 33), c32 p(33 38), c36 p(38 42), c40 p(42 46), c44 p(46 50), c48 p(50 54), c52 p(54 58)
+  gmshModelGeoExtrudeBoundaryLayer(
+      sBlTags, sBlTags_n, &sBlOutTags, &sBlOutTags_n, sBlElementsPerStep,
+      sBlSteps, sBlHeights, sBlHeights_n, recombine, second, viewIndex,
+      &ierr);
 
-
-  // gmshFree(outDimTags);
-
+  gmshModelGeoSynchronize(&ierr);
+  gmshModelMeshGenerate(2, &ierr);
  
+  // index family 100
+  int connectingBlPts[] = {17, 25, 29, 42, 46, 54};
+  size_t connectingBlPts_n = 6;
+  double* coord = NULL;
+  size_t coord_n;
+  for (size_t i = 0; i < connectingBlPts_n; ++i) {
+    gmshModelGetValue(0, connectingBlPts[i], NULL, 0, &coord, &coord_n, &ierr);
+    gmshModelGeoAddPoint(coord[coord_n-3], tHeight, coord[coord_n-1], DEFAULT_CELL_SIZE, 101 + i, &ierr);
+    gmshFree(coord);
+    coord = NULL;
+  }
+  gmshModelGeoAddPoint(0, tHeight, 0, DEFAULT_CELL_SIZE, 100, &ierr);
+  gmshModelGeoAddPoint(sUp + dL + sDown, tHeight, 0, DEFAULT_CELL_SIZE, 107, &ierr);
+
+  gmshModelMeshClear(0, 0, &ierr);
   gmshModelGeoSynchronize(&ierr);
 
 //   gmshModelGeoMeshSetTransfiniteCurve(1, 100, "Progression", 1, &ierr);
@@ -140,27 +154,11 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
 //   // gmshModelGeoAddLine(111, 9, 17, &ierr);
 
 
-//   gmshModelGeoSynchronize(&ierr);
+  // gmshModelGeoSynchronize(&ierr);
 
 
 //   gmshModelGeoSynchronize(&ierr);
 //   gmshModelMeshGenerate(2, &ierr);
-//   // Figure out coordinates
-//   // int pts[] = {108, 109, 113, 117, 121, 125, 130, 134, 138, 142, 146, 150};
-//   int pts[] = {109, 117, 121, 134, 138, 146};
-//   size_t pts_n = 6;
-//   double* coord = NULL;
-//   size_t coord_n;
-//   for (size_t i = 0; i < pts_n; ++i) {
-//     gmshModelGetValue(0, pts[i], NULL, 0, &coord, &coord_n, &ierr);
-//     gmshModelGeoAddPoint(coord[coord_n-3], t_height, coord[coord_n-1], lc, 1000+i, &ierr);
-//     gmshFree(coord);
-//     coord = NULL;
-//   }
-
-
-//   gmshModelMeshClear(0, 0, &ierr);
-
 
 //   gmshModelGeoAddLine(8, 1000, 100, &ierr);
 //   gmshModelGeoMeshSetTransfiniteCurve(100, 100, "Progression", 1, &ierr);
@@ -289,6 +287,7 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   if (gui) gmshFltkRun(&ierr);
 
   gmshFinalize(&ierr);
+  gmshFree(sBlOutTags);
   return 0;
   // free(outDimTags);
 }
