@@ -1,6 +1,8 @@
 #ifndef DIAMOND_H
 #define DIAMOND_H
 
+#define N_ARC_PARAMS 4
+
 typedef struct {
   double alpha;
   double beta;
@@ -12,11 +14,9 @@ typedef struct {
   double cy;
 } Diamond;
 
-void arc_constraints(int n, double* x, double* fvec, int n_xtra_args,
-                     double* args);
+void arc_constraints(int n, double* x, double* fvec, int nXtraArgs,
+                     double* xtraArgs);
 
-
-void calculate_arc_parameters(int n_arc_parameters, double* x_init, Diamond* diamond);
-
+void calculate_arc_parameters(double* xInit, Diamond* diamond);
 
 #endif  // DIAMOND_H

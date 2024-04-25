@@ -4,24 +4,15 @@
 #include <gmshc.h>
 #include <math.h>
 #include <stdio.h> 
-#include <stdlib.h>
 #include <string.h>
 
 #include "diamond.h"
 
+#define DEFAULT_CELL_SIZE 5e-3
 #define deg2rad(deg) ((deg) * M_PI / 180.0)
 
 
-int mesh_diamond(int argc, char** argv, Diamond* diamond) {
-  
-  // INPUTS
-  // ------ 
-  // d: diamond
-  // t: tunnel/top
-  // s: symmetry
-  // i: inlet
-  // o: outlet
-  
+int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig) {
   double dAlpha = deg2rad(diamond->alpha);
   double dBeta = deg2rad(diamond->beta);
   double dL = diamond->l;
@@ -29,24 +20,19 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond) {
   double dX2 = diamond->x2;
   double dCx = diamond->cx;
   double dCy = diamond->cy;
-  double dR = diamond->r;
 
+  double sUp = meshConfig->sUp; 
+  double sDown = meshConfig->sDown; 
+  double sBlkUp = meshConfig->sBlkUp;
+  double sBlkDown = meshConfig->sBlkDown;
+  double sArcUp = meshConfig->sArcUp;
+  double sArcDown = meshConfig->sArcDown;
+  double tHeight = meshConfig->tHeight;
 
-  double sUp = 0.2;
-  double sDown = 0.2;
-  double sBlkUp = 0.08;
-  double sBlkDown = 0.05;
-  double sArcUp = 0.02;
-  double sArcDown = 0.02;
-  double tHeight = 0.1016;
-  double lc = 5e-3;
   int ierr;
 
   // TO-DO: Include checks, e.g., l_blk_1 < sUp
-  // ...
 
-  // INITIALIZATION
-  // --------------
   gmshInitialize(argc, argv, 1, 0, &ierr);
 
   if (gmshIsInitialized(&ierr)) {
@@ -74,58 +60,74 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond) {
     sUp + dL - sBlkDown / 2.0, tan(dBeta) * sBlkDown / 2.0,
     sUp + dL, 0,
     sUp + dL + sBlkDown / 2.0, 0,
-    sUp + dL + sDown, 0,
-    0, tHeight,
-    sUp + dL + sDown, tHeight
+    sUp + dL + sDown, 0
   };
 
-  size_t sPts_n = 30; 
+  size_t sPts_n = 26; 
 
-  // Add points
+  // Add bottom points (1 - 13)
   int tagCount = 0;
   for (size_t i = 0; i < sPts_n; i += 2) {
-    gmshModelGeoAddPoint(sPts[i], sPts[i + 1], 0, lc, ++tagCount, &ierr);
+    gmshModelGeoAddPoint(sPts[i], sPts[i + 1], 0, DEFAULT_CELL_SIZE, ++tagCount, &ierr);
   }
 
-  for (size_t i = 0; i < sPts_n / 2; ++i) {
-    if (i == 5 && )
-    gmshModelGeoAddLine(i, i + 1, i, &ierr);
+  // Add bottom lines (1 - 12) 
+  for (size_t i = 1; i < sPts_n / 2; ++i) {
+    if (i == 6)
+      gmshModelGeoAddCircleArc(i, i + 1, i + 2, i, 0, 0, 0, &ierr);
+    else if (i == 7)
+      continue;
+    else
+      gmshModelGeoAddLine(i, i + 1, i, &ierr);
   }
-  gmshModelGeoAddLine(1, 2, 1, &ierr);
-  gmshModelGeoAddLine(2, 3, 2, &ierr);
-  gmshModelGeoAddLine(3, 4, 3, &ierr);
-  gmshModelGeoAddLine(4, 5, 4, &ierr);
-  gmshModelGeoAddLine(5, 6, 5, &ierr);
-  gmshModelGeoAddCircleArc(6, 7, 8, 6, 0, 0, 0, &ierr);
-  // gmshModelGeoAddLine(5, 6, 5, &ierr);
-  // gmshModelGeoAddLine(5, 6, 5, &ierr);
 
+  // Extrude bottom boundary layer
+  // double ratio = 1.05;
+  // double d_w = -1e-6;
+
+  // // int dimTags[] = {1, 1};
+  // // size_t dimTags_n = 2;
+  // int dimTags[] = {1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11};
+  // size_t dimTags_n = 22;
+
+  // int* outDimTags = NULL;
+  // size_t outDimTags_n;
+
+  // size_t numElements_n = 100;
+  // int numElements[100];
+  // for (size_t i = 0; i < numElements_n; ++i) {
+  //   numElements[i] = 1;
+  // }
+
+  // size_t heights_n = 100;
+  // double heights[100];
+  // for (size_t i = 0; i < heights_n; ++i) {
+  //   if (i == 0) {
+  //     heights[i] = d_w;
+  //   } else {
+  //     heights[i] = heights[i - 1] - (-d_w) * pow(ratio, i);
+  //   }
+  // }
+
+  // int recombine = 1;
+  // int second = 0;
+  // int viewIndex = -1;
+
+  // gmshModelGeoExtrudeBoundaryLayer(
+  //     dimTags, dimTags_n, &outDimTags, &outDimTags_n, numElements,
+  //     numElements_n, heights, heights_n, recombine, second, viewIndex,
+  //     &ierr);
+
+
+  // gmshFree(outDimTags);
+
+ 
   gmshModelGeoSynchronize(&ierr);
-//   // gmshModelGeoAddPoint(sUp - l_blk1 / 2.0, t_height, 0, lc, 106, &ierr);
-//   // gmshModelGeoAddPoint(sUp + l_blk1 / 2.0, t_height, 0, lc, 107, &ierr);
-//   // gmshModelGeoAddPoint(sUp + diamond->x1 - d_arc_u, t_height, 0, lc, 108, &ierr);
-//   // gmshModelGeoAddPoint(sUp + diamond->x2 + d_arc_d, t_height, 0, lc, 109, &ierr);
-//   // gmshModelGeoAddPoint(sUp + diamond->l - l_blk2 / 2.0, t_height, 0, lc, 110, &ierr);
-//   // gmshModelGeoAddPoint(sUp + diamond->l + l_blk2 / 2.0, t_height, 0, lc, 111, &ierr);
 
-//   // Bottom Wall
-//   gmshModelGeoAddLine(1, 100, 1, &ierr);
 //   gmshModelGeoMeshSetTransfiniteCurve(1, 100, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(100, 2, 2, &ierr);
 //   gmshModelGeoMeshSetTransfiniteCurve(2, 50, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(2, 101, 3, &ierr);
 //   gmshModelGeoMeshSetTransfiniteCurve(3, 51, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(101, 102, 4, &ierr);
 //   gmshModelGeoMeshSetTransfiniteCurve(4, 100, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(102, 3, 5, &ierr);
-//   gmshModelGeoAddCircleArc(3, 4, 5, 6, 0, 0, 0, &ierr);
-
-//   gmshModelGeoAddLine(5, 103, 7, &ierr);
-//   gmshModelGeoAddLine(103, 104, 8, &ierr);
-//   gmshModelGeoAddLine(104, 6, 9, &ierr);
-//   gmshModelGeoAddLine(6, 105, 10, &ierr);
-//   gmshModelGeoAddLine(105, 7, 11, &ierr);
-
 
 //   // Top wall
 //   // gmshModelGeoAddLine(8, 9, 12, &ierr);
@@ -139,45 +141,6 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond) {
 
 
 //   gmshModelGeoSynchronize(&ierr);
-
-//   double ratio = 1.05;
-//   double d_w = -1e-6;
-
-//   // int dimTags[] = {1, 1};
-//   // size_t dimTags_n = 2;
-//   int dimTags[] = {1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11};
-//   size_t dimTags_n = 22;
-
-//   int* outDimTags = NULL;
-//   size_t outDimTags_n;
-
-//   size_t numElements_n = 100;
-//   int numElements[100];
-//   for (size_t i = 0; i < numElements_n; ++i) {
-//     numElements[i] = 1;
-//   }
-
-//   size_t heights_n = 100;
-//   double heights[100];
-//   for (size_t i = 0; i < heights_n; ++i) {
-//     if (i == 0) {
-//       heights[i] = d_w;
-//     } else {
-//       heights[i] = heights[i - 1] - (-d_w) * pow(ratio, i);
-//     }
-//   }
-
-//   int recombine = 1;
-//   int second = 0;
-//   int viewIndex = -1;
-
-//   gmshModelGeoExtrudeBoundaryLayer(
-//       dimTags, dimTags_n, &outDimTags, &outDimTags_n, numElements,
-//       numElements_n, heights, heights_n, recombine, second, viewIndex,
-//       &ierr);
-
-
-//   gmshFree(outDimTags);
 
 
 //   gmshModelGeoSynchronize(&ierr);

@@ -1,4 +1,5 @@
-     Leading Half Angle (deg) = 7.5       
+# Diamond Geometry
+Leading Half Angle (deg) = 7.5       
 Trailing Half Angle (deg) = 30 
 Length of Diamond (m) = 0.7
 Apex Radius of Curvature (m) = 0.0265
@@ -9,3 +10,14 @@ Apex Radius of Curvature (m) = 0.0265
 # as a percentage of the total diamond length.
 
 Initial Guess (% Length of Diamond) = [65, 70, 68, 1.0]
+
+
+# Mesh Parameters
+Width upstream approach region (m) = 0.2
+Width downstream wake region (m) = 0.2
+Width diamond leading edge cluster (m) = 0.08;
+Width diamond trailing edge cluster (m) = 0.05;
+Width upstream portion apex arc cluster (m) = 0.02;
+Width downstream portion apex arc cluster (m) = 0.02;
+Tunnel half height (m) = 0.1016;
+
