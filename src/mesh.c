@@ -92,14 +92,14 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   int* sBlOutTags = NULL;
   size_t sBlOutTags_n;
 
-  size_t sBlSteps = 100;
-  int sBlElementsPerStep[100];
+  size_t sBlSteps = 70;
+  int sBlElementsPerStep[70];
   for (size_t i = 0; i < sBlSteps; ++i) {
     sBlElementsPerStep[i] = 1;
   }
 
-  size_t sBlHeights_n = 100;
-  double sBlHeights[100];
+  size_t sBlHeights_n = 70;
+  double sBlHeights[70];
   for (size_t i = 0; i < sBlHeights_n; ++i) {
     if (i == 0) {
       sBlHeights[i] = sBlW;
@@ -117,11 +117,12 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
       sBlTags, sBlTags_n, &sBlOutTags, &sBlOutTags_n, sBlElementsPerStep,
       sBlSteps, sBlHeights, sBlHeights_n, recombine, second, viewIndex,
       &ierr);
+  gmshFree(sBlOutTags);
 
   gmshModelGeoSynchronize(&ierr);
   gmshModelMeshGenerate(2, &ierr);
  
-  // index family 100
+  // BL connections, index family 100
   int connectingBlPts[] = {17, 25, 29, 42, 46, 54};
   size_t connectingBlPts_n = 6;
   double* coord = NULL;
@@ -134,148 +135,192 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   }
   gmshModelGeoAddPoint(0, tHeight, 0, DEFAULT_CELL_SIZE, 100, &ierr);
   gmshModelGeoAddPoint(sUp + dL + sDown, tHeight, 0, DEFAULT_CELL_SIZE, 107, &ierr);
-
   gmshModelMeshClear(0, 0, &ierr);
+
+  // Add top wall (100-) 
+  tagCount = 99;
+  size_t tConnect_n = 7;  
+  for (size_t i = 0; i < tConnect_n; ++i) 
+    gmshModelGeoAddLine(i + 100, i + 101, ++tagCount, &ierr);
+
+  // top bl
+  double ratio2 = 1.1;
+  double d_w2 = 1e-6;
+
+  int dimTags2[] = {1, 100, 1, 101, 1, 102, 1, 103, 1, 104, 1, 105, 1, 106};
+  size_t dimTags_n2 = 14;
+
+  int* outDimTags2 = NULL;
+  size_t outDimTags_n2;
+
+  size_t numElements_n2 = 71;
+  int numElements2[71];
+  for (size_t i = 0; i < numElements_n2; ++i) {
+    numElements2[i] = 1;
+  }
+
+  size_t heights_n2 = 71;
+  double heights2[71];
+  for (size_t i = 0; i < heights_n2; ++i) {
+    if (i == 0) {
+      heights2[i] = d_w2;
+    } else {
+      heights2[i] = heights2[i - 1] + d_w2 * pow(ratio2, i);
+    }
+  }
+
+  int recombine2 = 1;
+  int second2 = 0;
+  int viewIndex2 = -1;
+
+  gmshModelGeoExtrudeBoundaryLayer(dimTags2, dimTags_n2, &outDimTags2,
+                                   &outDimTags_n2, numElements2,
+                                   numElements_n2, heights2, heights_n2,
+                                   recombine2, second2, viewIndex2, &ierr);
+  gmshFree(outDimTags2);
+
   gmshModelGeoSynchronize(&ierr);
+  gmshModelMeshGenerate(2, &ierr);
 
-//   gmshModelGeoMeshSetTransfiniteCurve(1, 100, "Progression", 1, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(2, 50, "Progression", 1, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(3, 51, "Progression", 1, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(4, 100, "Progression", 1, &ierr);
-
-//   // Top wall
-//   // gmshModelGeoAddLine(8, 9, 12, &ierr);
-//   // gmshModelGeoAddLine(8, 106, 11, &ierr);
-//   // gmshModelGeoAddLine(106, 107, 12, &ierr);
-//   // gmshModelGeoAddLine(107, 108, 13, &ierr);
-//   // gmshModelGeoAddLine(108, 109, 14, &ierr);
-//   // gmshModelGeoAddLine(109, 110, 15, &ierr);
-//   // gmshModelGeoAddLine(110, 111, 16, &ierr);
-//   // gmshModelGeoAddLine(111, 9, 17, &ierr);
-
-
+  //bottom curves: c12 p(16 17), c16 p(17 21), c20 p(21 25), c24 p(25 29), c28 p(29, 33), c32 p(33 38), c36 p(38 42), c40 p(42 46), c44 p(46 50), c48 p(50 54), c52 p(54 58)
+  // top curves:c107 (110 111), c111 (111 115), c115 (115 119), c119 (119 123), c123 (123 127), c127 (127 131), c131 (131 135)
+  // bottom Bl connecto points 16, 17, 25, 29, 42, 46, 54, 58
+  // BL connectors index 1000 family
   // gmshModelGeoSynchronize(&ierr);
 
+  int blConnectionPts[] = {16, 110, 17, 111, 25, 115, 29, 119, 42, 123, 46, 127, 54, 131, 58, 135};
+  size_t blConnectionPts_n = 16;
+  tagCount = 0;
+  for (size_t i = 0; i < blConnectionPts_n; i+=2) {
+    gmshModelGeoAddLine(blConnectionPts[i], blConnectionPts[i+1], 1000 + tagCount, &ierr);
+    tagCount++;
+    printf("TAG %d\n", tagCount);
+  }
 
-//   gmshModelGeoSynchronize(&ierr);
-//   gmshModelMeshGenerate(2, &ierr);
+  gmshModelGeoSynchronize(&ierr);
+  gmshModelMeshClear(0, 0, &ierr);
 
-//   gmshModelGeoAddLine(8, 1000, 100, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(100, 100, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(1000, 1001, 101, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(101, 100, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(1001, 1002, 102, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(102, 100, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(1002, 1003, 103, &ierr);
-//   gmshModelGeoAddLine(1003, 1004, 104, &ierr);
-//   gmshModelGeoAddLine(1004, 1005, 105, &ierr);
-//   gmshModelGeoAddLine(1005, 9, 106, &ierr);
-//   // gmshModelGeoAddLine(1002, 1003, 14, &ierr);
-//   // gmshModelGeoAddLine(1003, 1004, 15, &ierr);
+  // 7 loops
+  int l1Tags[] = {12, 1001, -107, -1000};
+  int l2Tags[] = {16, 20, 1002, -111, -1001};
+  int l3Tags[] = {24, 1003, -115, -1002};
+  int l4Tags[] = {28, 32, 36, 1004, -119, -1003};
+  int l5Tags[] = {40, 1005, -123, -1004};
+  int l6Tags[] = {44, 48, 1006, -127, -1005};
+  int l7Tags[] = {52, 1007, -131, -1006} ;
 
-//   double ratio2 = 1.1;
-//   double d_w2 = 1e-6;
+  size_t l1Tags_n = 4;
+  size_t l2Tags_n = 5;
+  size_t l3Tags_n = 4;
+  size_t l4Tags_n = 6;
+  size_t l5Tags_n = 4;
+  size_t l6Tags_n = 5;
+  size_t l7Tags_n = 4;
 
-//   int dimTags2[] = {1, 100, 1, 101, 1, 102, 1, 103, 1, 104, 1, 105, 1, 106};
-//   size_t dimTags_n2 = 14;
+  gmshModelGeoAddCurveLoop(l1Tags, l1Tags_n, 1, 0, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l2Tags, l2Tags_n, 2, 0, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l3Tags, l3Tags_n, 3, 1, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l4Tags, l4Tags_n, 4, 0, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l5Tags, l5Tags_n, 5, 0, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l6Tags, l6Tags_n, 6, 0, &ierr); // 0 is for reorient
+  gmshModelGeoAddCurveLoop(l7Tags, l7Tags_n, 7, 0, &ierr); // 0 is for reorient
 
-//   int* outDimTags2 = NULL;
-//   size_t outDimTags_n2;
+  int s1_loops[] = {1};
+  int s2_loops[] = {2};
+  int s3_loops[] = {3};
+  int s4_loops[] = {4};
+  int s5_loops[] = {5};
+  int s6_loops[] = {6};
+  int s7_loops[] = {7};
 
-//   size_t numElements_n2 = 71;
-//   int numElements2[71];
-//   for (size_t i = 0; i < numElements_n2; ++i) {
-//     numElements2[i] = 1;
-//   }
+  int s1_corners[] = {16, 17, 111, 110};
+  int s2_corners[] = {17, 25, 115, 111};
+  int s3_corners[] = {25, 29, 119, 115};
+  int s4_corners[] = {29, 42, 123, 119};
+  int s5_corners[] = {42, 46, 127, 123};
+  int s6_corners[] = {46, 54, 131, 127};
+  int s7_corners[] = {54, 58, 135, 131};
 
-//   size_t heights_n2 = 71;
-//   double heights2[71];
-//   for (size_t i = 0; i < heights_n2; ++i) {
-//     if (i == 0) {
-//       heights2[i] = d_w2;
-//     } else {
-//       heights2[i] = heights2[i - 1] + d_w2 * pow(ratio2, i);
-//     }
-//   }
+  size_t loops_n = 1;
 
-//   int recombine2 = 1;
-//   int second2 = 0;
-//   int viewIndex2 = -1;
+  gmshModelGeoAddPlaneSurface(s1_loops, loops_n, 300, &ierr);
+  gmshModelGeoAddPlaneSurface(s2_loops, loops_n, 301, &ierr);
+  gmshModelGeoAddPlaneSurface(s3_loops, loops_n, 302, &ierr);
+  gmshModelGeoAddPlaneSurface(s4_loops, loops_n, 303, &ierr);
+  gmshModelGeoAddPlaneSurface(s5_loops, loops_n, 304, &ierr);
+  gmshModelGeoAddPlaneSurface(s6_loops, loops_n, 305, &ierr);
+  gmshModelGeoAddPlaneSurface(s7_loops, loops_n, 306, &ierr);
 
-//   gmshModelGeoExtrudeBoundaryLayer(dimTags2, dimTags_n2, &outDimTags2,
-//                                    &outDimTags_n2, numElements2,
-//                                    numElements_n2, heights2, heights_n2,
-//                                    recombine2, second2, viewIndex2, &ierr);
-//   gmshFree(outDimTags2);
+  gmshModelGeoSynchronize(&ierr);
 
-//   gmshModelGeoSynchronize(&ierr);
+  // Blk1 
+  gmshModelGeoMeshSetTransfiniteCurve(1, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1001, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(100, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1000, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(300, "Left", s1_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,300, 90, &ierr);
 
-//   gmshModelGeoAddLine(108, 1008, 200, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(200, 50, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(109, 1009, 201, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(201, 50, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(117, 1013, 202, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(202, 50, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(121, 1017, 203, &ierr);
-//   gmshModelGeoMeshSetTransfiniteCurve(203, 50, "Progression", 1, &ierr);
-//   gmshModelGeoAddLine(134, 1021, 204, &ierr);
-//   gmshModelGeoAddLine(138, 1025, 205, &ierr);
-//   gmshModelGeoAddLine(146, 1029, 206, &ierr);
-//   gmshModelGeoAddLine(150, 1033, 207, &ierr);
+  // Blk2 
+  gmshModelGeoMeshSetTransfiniteCurve(2, 51, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(3, 50, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1002, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(101, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(301, "Left", s2_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,301, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 301, 1000, &ierr);
+  // gmshModelMeshGenerate(2, &ierr);
 
-
-//   // Curve loops
-//   // gmshModelGeoAddLine(108, 109, 888, &ierr);
-//   // gmshModelGeoAddLine(1008, 1009, 889, &ierr);
-//   // int blk1[] = {888, 201, -889, -200};
-//   int blk1[] = {12, 201, -107, -200};
-//   // int blk1[] = {1, 201, -100, -200};
-//   // int blk1[] = {1, 888, -100, -889};
-//   int blk1_loops[] = {1};
-//   size_t blk1_n = 4; 
-//   size_t blk1_loops_n = 1;
-//   gmshModelGeoAddCurveLoop(blk1, blk1_n, 1, 0, &ierr);
-//   gmshModelGeoAddPlaneSurface(blk1_loops, blk1_loops_n, 300, &ierr);
-
-
-//   int blk2[] = {16, 20, 202,-111, -201};
-//   size_t blk2_n = 5;
-//   int blk2_loops[]={2};
-//   size_t blk2_loops_n = 1;
-//   gmshModelGeoAddCurveLoop(blk2, blk2_n, 2, 0, &ierr);
-//   gmshModelGeoAddPlaneSurface(blk2_loops, blk2_loops_n, 301, &ierr);
-
-//    int blk3[] = {24, 203,-115, -202};
-//   size_t blk3_n = 4;
-//   int blk3_loops[]={3};
-//   size_t blk3_loops_n = 1;
-//   gmshModelGeoAddCurveLoop(blk3, blk3_n, 3, 0, &ierr);
-//   gmshModelGeoAddPlaneSurface(blk3_loops, blk3_loops_n, 302, &ierr);
-
-//   gmshModelGeoSynchronize(&ierr);
-//  int cornerTags2[] = {109, 117, 1013, 1009};
-//   gmshModelGeoMeshSetTransfiniteSurface(301, "Left", cornerTags2, 4, &ierr);
-//   gmshModelGeoMeshSetRecombine(2,301, 90, &ierr);
-
-
-//   int cornerTags3[] = {117,121,1017, 1013};
-//   gmshModelGeoMeshSetTransfiniteSurface(302, "Left", cornerTags3, 4, &ierr);
-//   gmshModelGeoMeshSetRecombine(2,302, 90, &ierr);
-
-//   int cornerTags[] = {108, 109, 1009, 1008};
-//   gmshModelGeoMeshSetTransfiniteSurface(300, "Left", cornerTags, 4, &ierr);
-//   gmshModelGeoMeshSetRecombine(2,300, 90, &ierr);
-
-
-//   gmshModelGeoSynchronize(&ierr);
-//   gmshModelMeshGenerate(2, &ierr);
+  // gmshModelGeoMeshSetSmoothing(2, 301, 1000, &ierr);
   
-//   gmshModelMeshSetSmoothing(2, 301, 100, &ierr);
 
-//   gmshModelGeoSynchronize(&ierr);
-//   gmshModelMeshClear(0, 0, &ierr);
-//   gmshModelMeshGenerate(2, &ierr);
-//  gmshWrite("diamond.msh", &ierr);
+  // Blk3 
+  gmshModelGeoMeshSetTransfiniteCurve(4, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1003, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(102, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(302, "Left", s3_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,302, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 302, 1000, &ierr);
+  
+  // Blk4 
+  gmshModelGeoMeshSetTransfiniteCurve(5, 33, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(6, 35, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(7, 34, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1004, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(103, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(303, "Left", s4_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,303, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 303, 1000, &ierr);
+
+  // Blk5 
+  gmshModelGeoMeshSetTransfiniteCurve(8, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1005, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(104, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(304, "Left", s5_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,304, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 304, 1000, &ierr);
+
+  // Blk6 
+  gmshModelGeoMeshSetTransfiniteCurve(9, 50, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(10, 51, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1006, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(105, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(305, "Left", s6_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,305, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 305, 1000, &ierr);
+
+  // Blk7 
+  gmshModelGeoMeshSetTransfiniteCurve(11, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(1007, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteCurve(106, 100, "Progression", 1, &ierr);
+  gmshModelGeoMeshSetTransfiniteSurface(306, "Left", s7_corners, 4, &ierr);
+  gmshModelGeoMeshSetRecombine(2,306, 90, &ierr);
+  gmshModelGeoMeshSetSmoothing(2, 306, 1000, &ierr);
+
+  gmshModelGeoSynchronize(&ierr);
+  gmshModelMeshGenerate(2, &ierr);
+
+  gmshWrite("diamond.msh", &ierr);
 
   int gui = 1;
   for (int i = 0; i < argc; i++) {
