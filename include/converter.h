@@ -20,13 +20,17 @@ typedef struct {
   int tagsBoundingCurves[4]; // quads
 } Surface;
 
-typedef struct {
-  Point* points;
-  Curve* curves;
-  Surface* surfaces;
-} Entities;
 
-void readGmsh(const char* fileName, Entities* entities);
+typedef struct {
+  int entityDim;
+  int entityTag;
+  size_t numNodes;
+  size_t* nodeTags;
+  double* x, y, z;
+} Node;
+
+
+void readGmsh(const char* fileName, Point** points, size_t* numPoints, Curve** curves, size_t* numCurves, Surface** surfaces, size_t* numSurfaces, Node** nodes);
 
 
 
