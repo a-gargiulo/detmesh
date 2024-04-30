@@ -32,8 +32,16 @@ typedef struct {
   double* x, *y, *z;
 } Node;
 
+typedef struct {
+  int entityDim;
+  int entityTag;
+  int elementType;
+  size_t numElementsInBlock;
+  size_t* elementTags;
+  size_t* nodeTags;
+} Element;
 
-void readGmsh(const char* fileName, Point** points, size_t* numPoints, Curve** curves, size_t* numCurves, Surface** surfaces, size_t* numSurfaces, Node** nodes);
+void readGmsh(const char* fileName, Point** points, size_t* numPoints, Curve** curves, size_t* numCurves, Surface** surfaces, size_t* numSurfaces, Node** nodes, size_t* numEntityBlocks, Element** elements, size_t* numEntityBlocksElem);
 
 
 

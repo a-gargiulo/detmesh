@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "parsing.h"
 
@@ -10,12 +11,14 @@
 
 void readGmsh(const char* fileName, Point** points, size_t* numPoints,
               Curve** curves, size_t* numCurves, Surface** surfaces,
-              size_t* numSurfaces, Node** nodes) {
+              size_t* numSurfaces, Node** nodes, size_t* numEntityBlocks, Element** elements, size_t* numEntityBlocksElem) {
+
   int err;
   int isFirstLine;
   int readPts, readCrvs, readSurfs;
   int iiPts, iiCrvs, iiSurfs;
-  size_t numEntityBlocks, numNodes, minNodeTag, maxNodeTag;
+  size_t numNodes, minNodeTag, maxNodeTag;
+  size_t numElements, minElementTag, maxElementTag;
   FILE* file;
   char line[LINE_BUFFER_SIZE];
   char* pLine;
@@ -25,14 +28,19 @@ void readGmsh(const char* fileName, Point** points, size_t* numPoints,
 
 
   printf("\n");
+  
   printf("Converter\n");
+  
   printf("---------\n");
+  
   printf("\n");
+  
 
   file = fopen(fileName, "r");
 
   if (file == NULL) {
     fprintf(stderr, "ERROR: Gmsh file could not open!\n");
+    
     return;
   }
 
@@ -41,9 +49,11 @@ void readGmsh(const char* fileName, Point** points, size_t* numPoints,
       fgets(line, LINE_BUFFER_SIZE, file);
     }
     printf("%s\n", startCategory);
+    
 
     if (strcmp(startCategory, "Entities") == 0) {
-      printf("Reading ENTITIES... ");
+      printf("Reading ENTITIES...\n");
+      
       // first line
       fgets(line, LINE_BUFFER_SIZE, file);
       sscanf(line, " %zu %zu %zu 0", numPoints, numCurves, numSurfaces);
@@ -86,19 +96,20 @@ void readGmsh(const char* fileName, Point** points, size_t* numPoints,
       
       if (strcmp(endCategory, "EndEntities") == 0){
         printf("DONE!\n");
+        
       }
       
     }
     else if (strcmp(startCategory, "Nodes") == 0) {
-      printf("Reading NODES... ");
+      printf("Reading NODES...\n");
+      
       //first line
       fgets(line, LINE_BUFFER_SIZE, file);
-      sscanf(line, "%zu %zu %zu %zu", &numEntityBlocks, &numNodes, &minNodeTag, &maxNodeTag);
-      *nodes = (Node*)malloc(numEntityBlocks * sizeof(Node));
+      sscanf(line, "%zu %zu %zu %zu", numEntityBlocks, &numNodes, &minNodeTag, &maxNodeTag);
+      *nodes = (Node*)malloc(*numEntityBlocks * sizeof(Node));
 
       //entity blocks
-      
-      for (size_t i = 0; i < numEntityBlocks; ++i) {
+      for (size_t i = 0; i < *numEntityBlocks; ++i) {
        fgets(line, LINE_BUFFER_SIZE, file);
        sscanf(line, " %d %d 0 %zu ", &(*nodes)[i].entityDim, &(*nodes)[i].entityTag, &(*nodes)[i].numNodesInBlock);
        (*nodes)[i].nodeTags = (size_t*)malloc((*nodes)[i].numNodesInBlock*sizeof(size_t));
@@ -106,39 +117,72 @@ void readGmsh(const char* fileName, Point** points, size_t* numPoints,
        (*nodes)[i].y = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
        (*nodes)[i].z = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
 
-
        
-       printf("Entering Tag loop, at Block %zu:\n", i);
        for (size_t j = 0; j < (*nodes)[i].numNodesInBlock; ++j) {
          fgets(line, LINE_BUFFER_SIZE, file);
-         printf("READING: %s\n", line);
          sscanf(line, " %zu ", &(*nodes)[i].nodeTags[j]);
-         printf("ITERATION: %zu\n", j);
        }
-       printf("Exiting loop\n");
 
-       printf("Entering coord loop, at Block %zu:\n", i);
        for (size_t k = 0; k < (*nodes)[i].numNodesInBlock; ++k){
          fgets(line, LINE_BUFFER_SIZE, file);
-         printf("READING: %s\n", line);
          sscanf(line, " %lf %lf %lf ", &(*nodes)[i].x[k], &(*nodes)[i].y[k], &(*nodes)[i].z[k] );
-         printf("ITERATION: %zu\n", k);
        }
-       printf("Exiting loop\n");
        
       }
+      
       while (sscanf(line, " $%s ", endCategory) != 1) {
          fgets(line, LINE_BUFFER_SIZE, file);
        }
       
-       if (strcmp(endCategory, "EndNodes") == 0){
-         printf("DONE!\n");
-       }
+      if (strcmp(endCategory, "EndNodes") == 0){
+        printf("DONE!\n");
+      }
     } 
-  }
+    else if (strcmp(startCategory, "Elements") == 0){
+      printf("Reading ELEMENTS...\n");
 
+      //first line
+      fgets(line, LINE_BUFFER_SIZE, file);
+      sscanf(line, "%zu %zu %zu %zu", numEntityBlocksElem, &numElements, &minElementTag, &maxElementTag);
+      *elements = (Element*)malloc(*numEntityBlocksElem * sizeof(Element));
+
+      
+      //Element blocks
+      for (size_t i = 0; i < *numEntityBlocksElem; ++i) {
+        fgets(line, LINE_BUFFER_SIZE, file);
+        sscanf(line, " %d %d %d %zu ", &(*elements)[i].entityDim, &(*elements)[i].entityTag, &(*elements)[i].elementType, &(*elements)[i].numElementsInBlock);
+
+       (*elements)[i].elementTags = (size_t*)malloc((*elements)[i].numElementsInBlock*sizeof(size_t));
+       //1-node point
+       if ((*elements)[i].elementType == 15) {
+        (*elements)[i].nodeTags = (size_t*)malloc((*nodes)[i].numNodesInBlock*sizeof(size_t));
+        for (size_t j = 0; j < (*elements)[i].numElementsInBlock; ++j) {
+          fgets(line, LINE_BUFFER_SIZE, file);
+          sscanf(line, " %zu %zu ", &(*elements)[i].elementTags[j], &(*elements)[i].nodeTags[j]);
+        }
+       }
+       //2-node line
+       else if ((*elements)[i].elementType == 1) {
+        (*elements)[i].nodeTags = (size_t*)malloc(2 * (*nodes)[i].numNodesInBlock*sizeof(size_t));
+        for (size_t j = 0; j < (*elements)[i].numElementsInBlock; ++j) {
+          fgets(line, LINE_BUFFER_SIZE, file);
+          sscanf(line, " %zu %zu %zu ", &(*elements)[i].elementTags[j], &(*elements)[i].nodeTags[j*2],&(*elements)[i].nodeTags[j*2+1]);
+        }
+       }
+       //4-node quadrangle
+       else if ((*elements)[i].elementType == 3) {
+        (*elements)[i].nodeTags = (size_t*)malloc(4 * (*nodes)[i].numNodesInBlock*sizeof(size_t));
+        for (size_t j = 0; j < (*elements)[i].numElementsInBlock; ++j) {
+          fgets(line, LINE_BUFFER_SIZE, file);
+          sscanf(line, "%zu %zu %zu %zu %zu ", &(*elements)[i].elementTags[j], &(*elements)[i].nodeTags[j*4],&(*elements)[i].nodeTags[j*4+1],&(*elements)[i].nodeTags[j*4+2],&(*elements)[i].nodeTags[j*4+3]);
+        }
+       }
+      } 
+    }
+  }
   if (feof(file)){
     printf("END OF FILE!\n");
   }
   fclose(file);
 }
+
