@@ -96,26 +96,30 @@ void readGmsh(const char* fileName, Point** points, size_t* numPoints,
       sscanf(line, "%zu %zu %zu %zu", &numEntityBlocks, &numNodes, &minNodeTag, &maxNodeTag);
       *nodes = (Node*)malloc(numEntityBlocks * sizeof(Node));
 
-
       //entity blocks
+      
       for (size_t i = 0; i < numEntityBlocks; ++i) {
        fgets(line, LINE_BUFFER_SIZE, file);
-       sscanf(line, " %d %d 0 %zu ", &(*nodes)[i].entityDim, &(*nodes)[i].entityTag, &(*nodes)[i].numNodesInBlock);
-       (*nodes)[i].nodeTags = (size_t*)malloc((*nodes)[i].numNodesInBlock*sizeof(size_t));
-       (*nodes)[i].x = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
-       (*nodes)[i].y = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
-       (*nodes)[i].z = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
+       sscanf(line, " %d %d 0 %zu ", &((*nodes)[i]).entityDim, &((*nodes)[i]).entityTag, &((*nodes)[i]).numNodesInBlock);
+       printf("ERR = %d\n", err);
+       // printf(" %d %d 0 %zu ", (*nodes)[i].entityDim, (*nodes)[i].entityTag, (*nodes)[i].numNodesInBlock);
+       // printf("%d %d 0 %zu", (*nodes)[i].entityDim, (*nodes)[i].entityTag, (*nodes)[i].numNodesInBlock);
+       // (*nodes)[i].nodeTags = (size_t*)malloc((*nodes)[i].numNodesInBlock*sizeof(size_t));
+       // (*nodes)[i].x = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
+       // (*nodes)[i].y = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
+       // (*nodes)[i].z = (double*)malloc((*nodes)[i].numNodesInBlock*sizeof(double));
+
 
        
-       for (size_t j = 0; j < (*nodes)[i].numNodesInBlock; ++j) {
-         fgets(line, LINE_BUFFER_SIZE, file);
-         sscanf(line, " %zu ", &(*nodes)[i].nodeTags[j]);
-       }
+       // for (size_t j = 0; j < (*nodes)[i].numNodesInBlock; ++j) {
+       //   fgets(line, LINE_BUFFER_SIZE, file);
+       //   sscanf(line, " %zu ", &(*nodes)[i].nodeTags[j]);
+       // }
 
-       for (size_t k = 0; k < (*nodes[i]).numNodesInBlock; ++k){
-         fgets(line, LINE_BUFFER_SIZE, file);
-         sscanf(line, " %lf %lf %lf ", &(*nodes)[i].x[k], &(*nodes)[i].y[k], &(*nodes)[i].z[k] );
-       }
+       // for (size_t k = 0; k < (*nodes[i]).numNodesInBlock; ++k){
+       //   fgets(line, LINE_BUFFER_SIZE, file);
+       //   sscanf(line, " %lf %lf %lf ", &(*nodes)[i].x[k], &(*nodes)[i].y[k], &(*nodes)[i].z[k] );
+       // }
         
        
       }

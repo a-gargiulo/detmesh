@@ -11,6 +11,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_compile_options(/Wall)
+endif()
+
 file(GLOB SRCS "${PROJECT_SOURCE_DIR}/src/*.c")
 
 add_executable(detmesh ${SRCS})

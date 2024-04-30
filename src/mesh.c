@@ -331,7 +331,6 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   }
   if (gui) gmshFltkRun(&ierr);
 
-
   gmshFinalize(&ierr);
 
   return 0;
