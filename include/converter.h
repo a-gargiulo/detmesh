@@ -1,6 +1,9 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
+#include <stddef.h>
+
+
 typedef struct {
   int tag;
   double x, y, z;
@@ -24,9 +27,9 @@ typedef struct {
 typedef struct {
   int entityDim;
   int entityTag;
-  size_t numNodes;
+  size_t numNodesInBlock;
   size_t* nodeTags;
-  double* x, y, z;
+  double* x, *y, *z;
 } Node;
 
 

@@ -331,10 +331,9 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   }
   if (gui) gmshFltkRun(&ierr);
 
+
   gmshFinalize(&ierr);
-  if (ierr == 0) {
-    printf("GREAT SUCCESS\n");
-  }
+
   return 0;
   // free(outDimTags);
 }
