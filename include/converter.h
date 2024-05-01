@@ -4,35 +4,47 @@
 #include <stddef.h>
 
 
-typedef struct {
+typedef struct Point {
   int tag;
-  double x, y, z;
+  double x; 
+  double y; 
+  double z;
 } Point; 
 
-typedef struct {
+typedef struct Curve {
   int tag;
-  double minX, minY, minZ;
-  double maxX, maxY, maxZ;
+  double minX; 
+  double minY;
+  double minZ;
+  double maxX;
+  double maxY;
+  double maxZ;
   int tagsBoundingPoints[2]; // lines
 } Curve;
 
-typedef struct {
+typedef struct Surface {
   int tag;
-  double minX, minY, minZ;
-  double maxX, maxY, maxZ;
+  double minX;
+  double minY;
+  double minZ;
+  double maxX;
+  double maxY;
+  double maxZ;
   int tagsBoundingCurves[4]; // quads
 } Surface;
 
 
-typedef struct {
+typedef struct Node {
   int entityDim;
   int entityTag;
-  size_t numNodesInBlock;
+  double* x;
+  double* y;
+  double* z;
   size_t* nodeTags;
-  double* x, *y, *z;
+  size_t numNodesInBlock;
 } Node;
 
-typedef struct {
+typedef struct Element {
   int entityDim;
   int entityTag;
   int elementType;
