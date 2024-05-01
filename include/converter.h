@@ -4,14 +4,14 @@
 #include <stddef.h>
 
 
-typedef struct Point {
+typedef struct {
   int tag;
   double x; 
   double y; 
   double z;
 } Point; 
 
-typedef struct Curve {
+typedef struct {
   int tag;
   double minX; 
   double minY;
@@ -22,7 +22,7 @@ typedef struct Curve {
   int tagsBoundingPoints[2]; // lines
 } Curve;
 
-typedef struct Surface {
+typedef struct {
   int tag;
   double minX;
   double minY;
@@ -34,7 +34,7 @@ typedef struct Surface {
 } Surface;
 
 
-typedef struct Node {
+typedef struct {
   int entityDim;
   int entityTag;
   double* x;
@@ -44,7 +44,7 @@ typedef struct Node {
   size_t numNodesInBlock;
 } Node;
 
-typedef struct Element {
+typedef struct {
   int entityDim;
   int entityTag;
   int elementType;

@@ -9,6 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build")
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message("Clang detected. Exporting compile commands...")
     set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+    add_compile_options(-Wall -Wextra -Weverything -pedantic)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

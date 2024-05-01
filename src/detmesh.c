@@ -30,22 +30,22 @@ void run(int argc, char** argv) {
   calculate_arc_parameters(xInit, &diamond);
 
   status = mesh_diamond(argc, argv, &diamond, &meshConfig);
-  // readGmsh("diamond.msh", &points, &numPoints, &curves, &numCurves, &surfaces, &numSurfaces, &nodes, &numEntityBlocks, &elements, &numEntityBlocksElem);
+  readGmsh("diamond.msh", &points, &numPoints, &curves, &numCurves, &surfaces, &numSurfaces, &nodes, &numEntityBlocks, &elements, &numEntityBlocksElem);
 
   ////CLEANUP
-  //free(points);
-  //free(curves);
-  //free(surfaces);
-  //for (size_t i = 0; i < numEntityBlocks; ++i) {
-  //  free(nodes[i].nodeTags);
-  //  free(nodes[i].x);
-  //  free(nodes[i].y);
-  //  free(nodes[i].z);
-  //}
-  //free(nodes);
-  //for (size_t i = 0; i < numEntityBlocksElem; ++i) {
-  //  free(elements[i].elementTags);
-  //  free(elements[i].nodeTags);
-  //}
-  //free(elements);
+  free(points);
+  free(curves);
+  free(surfaces);
+  for (size_t i = 0; i < numEntityBlocks; ++i) {
+    free(nodes[i].nodeTags);
+    free(nodes[i].x);
+    free(nodes[i].y);
+    free(nodes[i].z);
+  }
+  free(nodes);
+  for (size_t i = 0; i < numEntityBlocksElem; ++i) {
+    free(elements[i].elementTags);
+    free(elements[i].nodeTags);
+  }
+  free(elements);
 }
