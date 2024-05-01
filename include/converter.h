@@ -1,9 +1,6 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
-#include <stddef.h>
-
-
 typedef struct {
   int tag;
   double x; 
@@ -37,24 +34,30 @@ typedef struct {
 typedef struct {
   int entityDim;
   int entityTag;
+  int numNodesInBlock;
+  int* nodeTags;
   double* x;
   double* y;
   double* z;
-  size_t* nodeTags;
-  size_t numNodesInBlock;
 } Node;
 
 typedef struct {
   int entityDim;
   int entityTag;
   int elementType;
-  size_t numElementsInBlock;
-  size_t* elementTags;
-  size_t* nodeTags;
+  int numElementsInBlock;
+  int* elementTags;
+  int* nodeTags;
 } Element;
 
-void readGmsh(const char* fileName, Point** points, size_t* numPoints, Curve** curves, size_t* numCurves, Surface** surfaces, size_t* numSurfaces, Node** nodes, size_t* numEntityBlocks, Element** elements, size_t* numEntityBlocksElem);
 
+
+int readGmsh(const char* fileName, Point** points, int* numPoints, Curve** curves, int* numCurves, Surface** surfaces, int* numSurfaces, Node** nodes, int* numEntityBlocks, Element** elements, int* numEntityBlocksElem, int* numNodes);
+
+
+void print_title();
+
+int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBlocks, const int numNodes);
 
 
 #endif // CONVERTER_H
