@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <math.h>
+#include "diamond.h"
+#include "mesh.h"
 #define LINE_BUFFER_SIZE 1024
 
 void print_title() {
@@ -248,33 +250,117 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
   return 0;
 }
 
+int xSorter(const void* node1, const void* node2) {
+  FluentNode* nodeA = (FluentNode*)node1;
+  FluentNode* nodeB = (FluentNode*)node2;
+  return (nodeA->x > nodeB->x) - (nodeA->x < nodeB->x);
+}
 
-int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBlocks, const int numNodes) {
+int ySorter(const void* node1, const void* node2) {
+  FluentNode* nodeA = (FluentNode*)node1;
+  FluentNode* nodeB = (FluentNode*)node2;
+  return (nodeA->y > nodeB->y) - (nodeA->y < nodeB->y);
+}
+
+void transpose(FluentNode* arr, int numRows, int numCols) {
+    FluentNode** transposed = (int**)malloc(numCols * sizeof(FluentNode*));
+    for (int i = 0; i < numCols; i++) {
+        transposed[i] = (FluentNode*)malloc(numRows * sizeof(FluentNode));
+    }
+
+    // Transpose the array
+    for (int i = 0; i < numRows; ++i) {
+        for (int j = 0; j < numCols; ++j) {
+            transposed[j][i] = arr[j * numRows + i];  // Swap rows and columns
+        }
+    }
+
+    // Copy the transposed array back to the original array
+    for (int i = 0; i < numCols; ++i) {
+        for (int j = 0; j < numRows; ++j) {
+            arr[j * numCols + i] = transposed[i][j];
+        }
+    }
+
+   for (int i = 0; i < numCols; i++) {
+        free(transposed[i]);
+    }
+    free(transposed);
+
+}
+
+int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBlocks, const int numNodes, const Diamond* diamond, const MeshConfig* meshConfig) {
+  printf("\nWRITING FLUENT\n--------------\n");
   FILE* file;
-
-
-  double* sNodeX = (double*)malloc(numNodes * sizeof(double));  
-  double* sNodeY = (double*)malloc(numNodes * sizeof(double));  
-  int* sNodeTags = (int*)malloc(numNodes * sizeof(int));  
-  if (sNodeX == NULL || sNodeY == NULL) {
+  int numFluentNodes = numNodes - 1; // discard arc center
+  FluentNode* fNodes = (FluentNode*)malloc(numFluentNodes * sizeof(FluentNode));
+  if (fNodes == NULL) {
     fprintf(stderr, "Error: Memory allocation failed\n");
     // Handle memory allocation failure
   }
 
+  printf("\n# Manipulate Nodes\n##################\n");
   // flatten nodes
   int k = 0;
   for (int i = 0; i < numEntityBlocks; ++i) {
     for (int j = 0; j < nodes[i].numNodesInBlock; ++j)
     {
-      sNodeX[k] = nodes[i].x[j];
-      sNodeY[k] = nodes[i].y[j];
-      sNodeTags[k] = nodes[i].nodeTags[j];
+      if (nodes[i].x[j] == meshConfig->sUp + diamond->cx && nodes[i].y[j] == diamond->cy)
+      {
+        printf("--> Arc center FOUND and eliminated.\n");
+        continue;
+      }
+      fNodes[k].x = nodes[i].x[j];
+      fNodes[k].y = nodes[i].y[j];
+      fNodes[k].tag = nodes[i].nodeTags[j];
       k++;
     }
   }
+  printf("CHECK Dimensionality... ");
+  if (k == numFluentNodes) {
+    printf("PASSED!\n");
+  }
+  else {
+    fprintf(stderr, "ERROR: Dimensionality check failed.\n");
+    return 1;
+  }
 
-  // sort nodes
+  // sort nodes based on x 
+  qsort(fNodes, numFluentNodes, sizeof(FluentNode), xSorter);
 
+  // find number of nodes with x=0
+  int dimY = 0;
+  for (int i = 0; i < numFluentNodes; ++i) {
+    if (fNodes[i].x == 0.0)
+      dimY++;
+  }
+  int dimX = numFluentNodes/dimY;
+  printf("Number of Nodes: %d\n", numFluentNodes);
+  printf("Dimension Y: %d\n", dimY);
+  printf("Dimension X: %d\n", dimX);
+
+  //sort every dimY points by y
+  printf("SORTING Y... ");
+  for (int i = 0; i < dimX; ++i){
+   qsort(fNodes + i * dimY, dimY, sizeof(FluentNode), ySorter); 
+  }
+  printf("Done!\n");
+
+
+  //transpose array
+  printf("TRANSPOSING array...");
+  transpose(fNodes, dimY, dimX);
+  printf("Done!\n");
+
+
+  printf("WRITING plot_data.txt... ");
+  FILE* tmpFile;
+  tmpFile = fopen("plot_data.txt", "w");
+  for (int i=0; i < numFluentNodes; ++i) {
+    fprintf(tmpFile, "%.12lf %.12lf\n", fNodes[i].x, fNodes[i].y);
+  }
+  fclose(tmpFile);
+  printf("Done!\n");
 
 
   file = fopen(outputFile, "w");
@@ -289,15 +375,17 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   fprintf(file, "(0 \"Dimensions:\")\n");
   fprintf(file, "(2 2)\n");
   fprintf(file, "\n");
-  fprintf(file, "(10 (0 1 %x 0 2))\n", numNodes);
+  fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
   fprintf(file, "\n");
-  fprintf(file, "(10 (1 1 %x 1 2)(\n", numNodes);
-
+  fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
+  }
   fprintf(file, ")\n");
 
   fclose(file);
-  free(sNodeX);
-  free(sNodeY);
+  free(fNodes);
 }
+
 
 

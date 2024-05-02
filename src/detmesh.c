@@ -33,7 +33,7 @@ void run(int argc, char** argv) {
   status = mesh_diamond(argc, argv, &diamond, &meshConfig);
   readGmsh("diamond.msh", &points, &numPoints, &curves, &numCurves, &surfaces, &numSurfaces, &nodes, &numEntityBlocks, &elements, &numEntityBlocksElem, &numNodes);
 
-  writeFluent("diamond_fluent.msh", nodes, numEntityBlocks, numNodes);
+  writeFluent("diamond_fluent.msh", nodes, numEntityBlocks, numNodes, &diamond, &meshConfig);
 
   ////CLEANUP
   free(points);
