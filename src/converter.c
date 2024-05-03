@@ -353,6 +353,12 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   printf("Done!\n");
 
 
+  //re-index
+  for (int i = 0; i < numFluentNodes; ++i) {
+    fNodes[i].tag = i + 1;
+  }
+
+
   printf("WRITING plot_data.txt... ");
   FILE* tmpFile;
   tmpFile = fopen("plot_data.txt", "w");
@@ -362,6 +368,40 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   fclose(tmpFile);
   printf("Done!\n");
 
+  int numFluentCells = (dimX - 1) * (dimY - 1);
+  int numFluentFaces = dimX * (dimY - 1) + dimY * (dimX - 1);
+  int numFluentFacesTop = dimX - 1;
+  int numFluentFacesIO = dimY - 1;
+
+  //find nr of diamond and free surface faces on symmetry boundary
+  int idx_up=0;
+  int idx_diamond=0;
+  for (int i=0; i < dimX; ++i) {
+    if (fNodes[i].x == meshConfig->sUp)
+    {
+      idx_up = i;
+      printf("FOUND 1\n");
+    }
+    else if (fNodes[i].x == meshConfig->sUp + diamond->l)
+    {
+      idx_diamond = i;
+      printf("FOUND 2\n");
+    }
+  }
+
+  int numFluentFacesUp = idx_up;
+  int numFluentFacesDiamond = idx_diamond - idx_up;
+  int numFluentFacesDown = (dimX-1) - idx_diamond;
+
+  int numFluentFacesInterior = numFluentFaces - 2*numFluentFacesIO - numFluentFacesTop - numFluentFacesUp - numFluentFacesDiamond - numFluentFacesDown;
+
+  int row;
+  int col;
+
+  int n1;
+  int n2;
+  int c1;
+  int c2;
 
   file = fopen(outputFile, "w");
 
@@ -376,16 +416,166 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   fprintf(file, "(2 2)\n");
   fprintf(file, "\n");
   fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
+  fprintf(file, "(12 (0 1 %x 0))\n", numFluentCells);
+  fprintf(file, "(13 (0 1 %x 2))\n", numFluentFaces);
   fprintf(file, "\n");
   fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
   for (int i = 0; i < numFluentNodes; ++i) {
     fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
   }
-  fprintf(file, ")\n");
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+  fprintf(file, "(12 (2 1 %x 1 3))\n", numFluentCells);
+  fprintf(file, "\n");
+  // interior
+  fprintf(file, "(13 (3 %x %x 2 2)(\n", 1, numFluentFacesInterior);
+  for (int i = 0; i < numFluentNodes; ++i){
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (col > 0 && col < dimX -1 && row < dimY - 1) {
+      n1 = i + 1;    
+      n2 = i + dimX + 1;    
+      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
+      c2 = c1 + 1;    
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+    
+
+    if (row > 0 && row < dimY -1 && col < dimX -1) {
+      n1 = i + 2;
+      n2 = i + 1;
+      c2 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i +  1 + dimX) % dimX;
+      c1 = c2 - dimX + 1;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+
+  //inlet
+  fprintf(file, "(13 (4 %x %x 4 2)(\n", numFluentFacesInterior+1, numFluentFacesInterior + numFluentFacesIO);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (col == 0 && row < dimY - 1)
+    {
+      n1 = i + dimX + 1;
+      n2 = i + 1; 
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+
+  //outlet
+  fprintf(file, "(13 (5 %x %x 5 2)(\n", numFluentFacesInterior + numFluentFacesIO + 1, numFluentFacesInterior + 2*numFluentFacesIO);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (col == dimX -1 && row < dimY - 1)
+    {
+      n1 = i + 1;
+      n2 = i + dimX + 1; 
+      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+  
+  //symmetry up
+  fprintf(file, "(13 (6 %x %x 7 2)(\n", numFluentFacesInterior + 2*numFluentFacesIO + 1, numFluentFacesInterior + 2*numFluentFacesIO+ numFluentFacesUp);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (row == 0 && col < dimX - 1 && fNodes[i].x < meshConfig->sUp)
+    {
+      n1 = i + 1;
+      n2 = i + 2; 
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+
+
+  //diamond
+  fprintf(file, "(13 (7 %x %x 3 2)(\n", numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + 1,numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (row == 0 && col < dimX - 1 && fNodes[i].x >= meshConfig->sUp && fNodes[i].x < meshConfig->sUp + diamond->l)
+    {
+      n1 = i + 1;
+      n2 = i + 2; 
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+
+
+  //symmetry down 
+  fprintf(file, "(13 (8 %x %x 7 2)(\n",numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + 1,numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + numFluentFacesDown);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (row == 0 && col < dimX - 1 && fNodes[i].x > meshConfig->sUp + diamond->l)
+    {
+      n1 = i + 1;
+      n2 = i + 2; 
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+
+
+  //top wall 
+  fprintf(file, "(13 (9 %x %x 3 2)(\n", numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + numFluentFacesDown + 1,numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + numFluentFacesDown+numFluentFacesTop);
+  for (int i = 0; i < numFluentNodes; ++i){
+
+    row = floor(i / dimX);
+    col = i % dimX;
+
+    if (row == dimY - 1 && col < dimX - 1)
+    {
+      n1 = i + 2;
+      n2 = i + 1; 
+      c1 = (floor(i / dimX) - 1) * (dimX - 1) + i % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
   fclose(file);
   free(fNodes);
+  return 0;
 }
+
 
 
 
