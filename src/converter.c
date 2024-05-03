@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "diamond.h"
 #include "mesh.h"
@@ -256,6 +257,7 @@ int xSorter(const void* node1, const void* node2) {
   return (nodeA->x > nodeB->x) - (nodeA->x < nodeB->x);
 }
 
+
 int ySorter(const void* node1, const void* node2) {
   FluentNode* nodeA = (FluentNode*)node1;
   FluentNode* nodeB = (FluentNode*)node2;
@@ -347,10 +349,10 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   printf("Done!\n");
 
 
-  //transpose array
-  printf("TRANSPOSING array...");
-  transpose(fNodes, dimY, dimX);
-  printf("Done!\n");
+  ////transpose array
+  //printf("TRANSPOSING array...");
+  //transpose(fNodes, dimY, dimX);
+  //printf("Done!\n");
 
 
   //re-index
@@ -415,18 +417,13 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   fprintf(file, "(0 \"Dimensions:\")\n");
   fprintf(file, "(2 2)\n");
   fprintf(file, "\n");
-  fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
   fprintf(file, "(12 (0 1 %x 0))\n", numFluentCells);
-  fprintf(file, "(13 (0 1 %x 2))\n", numFluentFaces);
-  fprintf(file, "\n");
-  fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
-  for (int i = 0; i < numFluentNodes; ++i) {
-    fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
-  }
-  fprintf(file, "))\n");
+  fprintf(file, "(13 (0 1 %x 0))\n", numFluentFaces);
+  fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
   fprintf(file, "\n");
   fprintf(file, "(12 (2 1 %x 1 3))\n", numFluentCells);
   fprintf(file, "\n");
+  
   // interior
   fprintf(file, "(13 (3 %x %x 2 2)(\n", 1, numFluentFacesInterior);
   for (int i = 0; i < numFluentNodes; ++i){
@@ -533,7 +530,7 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
 
 
   //symmetry down 
-  fprintf(file, "(13 (8 %x %x 7 2)(\n",numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + 1,numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + numFluentFacesDown);
+  fprintf(file, "(13 (8 %x %x 7 2)(\n",numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + 1, numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + numFluentFacesDown);
   for (int i = 0; i < numFluentNodes; ++i){
 
     row = floor(i / dimX);
@@ -567,6 +564,12 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
       c2 = 0;
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+  fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
   }
   fprintf(file, "))\n");
   fprintf(file, "\n");
