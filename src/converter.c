@@ -10,7 +10,24 @@
 #include "mesh.h"
 #define LINE_BUFFER_SIZE 1024
 
-void print_title() {
+void readMeshStructure(const char* fileName, int* meshStructure, int n_meshStructure){
+  FILE* file;
+
+  file = fopen(fileName,"r");
+
+  if(file == NULL){
+    fprintf(stderr, "ERROR: Structure file not found");
+    return;
+  }
+
+  for (int i = 0; i < n_meshStructure; i=i+2){
+    fscanf(file, " %d %d ", &meshStructure[i], &meshStructure[i+1]);
+  } 
+
+  fclose(file);
+}
+
+void print_title(void) {
   const char* title = "\n"
                       "READING GMSH\n"
                       "------------\n"
@@ -302,24 +319,68 @@ int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBl
   }
 
   printf("\n# Manipulate Nodes\n##################\n");
-  // flatten nodes
-  int k = 0;
-  for (int i = 0; i < numEntityBlocks; ++i) {
-    for (int j = 0; j < nodes[i].numNodesInBlock; ++j)
-    {
-      if (nodes[i].x[j] == meshConfig->sUp + diamond->cx && nodes[i].y[j] == diamond->cy)
-      {
-        printf("--> Arc center FOUND and eliminated.\n");
-        continue;
-      }
-      fNodes[k].x = nodes[i].x[j];
-      fNodes[k].y = nodes[i].y[j];
-      fNodes[k].tag = nodes[i].nodeTags[j];
-      k++;
+
+
+  int* meshStructure = (int*)malloc(2*(numEntityBlocks-1)*sizeof(int));
+
+  readMeshStructure("../data/structure.txt", meshStructure, 2*(numEntityBlocks-1));
+
+
+  // find surface blocks dimensionalities
+  int blockDimY=0;
+  int blockDimX=0;
+  for (int i = 0; i < numEntityBlocks;++i){
+    if(nodes[i].entityDim == 2){
+      blockDimY = 0;
+      while(nodes[i].y[blockDimY+1] - nodes[i].y[blockDimY] > 0){
+        blockDimY++;
+      }  
+      blockDimX = nodes[i].numNodesInBlock / blockDimY;
+
+    }
+    else {
+      continue;
     }
   }
+
+
+
+  //int m = 0;
+  //for (int i = 0; i < 2*(numEntityBlocks-1); i=i+2){
+  //  //find node
+  //  for (int j=0; j < numEntityBlocks; ++j){
+  //    if(nodes[j].entityDim == meshStructure[i] && nodes[j].entityTag == meshStructure[i+1]){
+  //      for (int k=0; k < nodes[j].numNodesInBlock; k++){
+  //        fNodes[m].x = nodes[j].x[k];
+  //        fNodes[m].y = nodes[j].y[k];
+  //        fNodes[m].tag = nodes[j].nodeTags[k];
+  //        m++;
+  //      }
+  //    }
+  //  }
+  //}
+
+
+
+
+//   // flatten nodes
+//   int k = 0;
+//   for (int i = 0; i < numEntityBlocks; ++i) {
+//     for (int j = 0; j < nodes[i].numNodesInBlock; ++j)
+//     {
+//       if (nodes[i].x[j] == meshConfig->sUp + diamond->cx && nodes[i].y[j] == diamond->cy)
+//       {
+//         printf("--> Arc center FOUND and eliminated.\n");
+//         continue;
+//       }
+//       fNodes[k].x = nodes[i].x[j];
+//       fNodes[k].y = nodes[i].y[j];
+//       fNodes[k].tag = nodes[i].nodeTags[j];
+//       k++;
+//     }
+//   }
   printf("CHECK Dimensionality... ");
-  if (k == numFluentNodes) {
+  if (m == numFluentNodes) {
     printf("PASSED!\n");
   }
   else {
