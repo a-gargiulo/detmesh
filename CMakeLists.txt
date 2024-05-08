@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-add_compile_options(-Wall -Wextra -Weverything -pedantic)
+add_compile_options(-Wall -Wextra -pedantic)
 
 # if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # add_compile_options(/Wall)
