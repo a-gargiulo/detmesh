@@ -386,13 +386,6 @@ int writeFluent(const char *outputFile, const Node *nodes,
   printf("DIMENSION Y: %d\n", dimY);
   printf("DIMENSION X: %d\n", dimX);
 
-
-  printf("STRUCTURE:\n");
-
-  printf("%d %d\n", nodes[0].entityDim, nodes[0].entityTag);
-  printf("%d %d\n", nodes[1].entityDim, nodes[1].entityTag);
-  printf("\n");
-
   // for (int i = 0; i < 2 * (numEntityBlocks - 1); i = i + 2) {
   //   printf("%d %d\n", meshStructure[i], meshStructure[i+1]);
   // }
@@ -417,11 +410,12 @@ int writeFluent(const char *outputFile, const Node *nodes,
     
     // reorder reversed blocks
     Point2D* shuffler = (Point2D*)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
-    for (int i=0; i < nodes[block].numNodesInBlock; ++i) {
-      shuffler[i].x = nodes[block].x[i];
-      shuffler[i].y = nodes[block].y[i];
-      shuffler[i].tag = nodes[block].nodeTags[i];
+    for (int m=0; m < nodes[block].numNodesInBlock; ++m) {
+      shuffler[m].x = nodes[block].x[m];
+      shuffler[m].y = nodes[block].y[m];
+      shuffler[m].tag = nodes[block].nodeTags[m];
     }
+
     if (isReversed(nodes, block)) {
       if (nodes[block].entityDim == 1){
         qsort(shuffler, nodes[block].numNodesInBlock, sizeof(Point2D), ySorter);
@@ -430,17 +424,25 @@ int writeFluent(const char *outputFile, const Node *nodes,
         }
       }
       else if (nodes[block].entityDim == 2){
-        for (int i = 0; i < nodes[block].numNodesInBlock/revBlockDimY; ++i){
-          qsort(shuffler + i * revBlockDimY, revBlockDimY, sizeof(Point2D), ySorter); 
+        for (int m = 0; m < nodes[block].numNodesInBlock/revBlockDimY; ++m){
+          qsort(shuffler + m * revBlockDimY, revBlockDimY, sizeof(Point2D), ySorter); 
         }
       }
-      for (int i = 0; i < nodes[block].numNodesInBlock; ++i) {
-        nodes[block].x[i] = shuffler[i].x;
-        nodes[block].y[i] = shuffler[i].y;
-        nodes[block].nodeTags[i] = shuffler[i].tag;
+      for (int m = 0; m < nodes[block].numNodesInBlock; ++m) {
+        nodes[block].x[m] = shuffler[m].x;
+        nodes[block].y[m] = shuffler[m].y;
+        nodes[block].nodeTags[m] = shuffler[m].tag;
       }
     }
     // printf("%d\n", block);
+    
+    // printf("%d: %d %d\n", i, nodes[block].entityDim, nodes[block].entityTag);
+    // if (i==60){
+    //   printf("%d %d\n", nodes[block].entityDim, nodes[block].entityTag);
+    //   for (int m = 0; m < nodes[block].numNodesInBlock;++m) {
+    //     printf("%lf %lf %d\n",nodes[block].x[m], nodes[block].y[m], nodes[block].nodeTags[m]);
+    //   }
+    // }
 
     // Process each block of nodes sequentially
     if (isHorizontal > 0) {
@@ -472,7 +474,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
               col_idx_tmp * dimX + row_idx;
 
           if (k+1 != nodes[block].numNodesInBlock){
-            if (nodes[block].y[k+1] > nodes[block].y[k]) {
+            if (nodes[block].y[k+1] > nodes[block].y[k] && fabs(nodes[block].x[k+1]-nodes[block].x[k]) < 1e-4) {
               col_idx_tmp++;
             }
             else {
