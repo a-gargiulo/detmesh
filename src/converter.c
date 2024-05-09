@@ -277,16 +277,11 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
   return 0;
 }
 
-int xSorter(const void *node1, const void *node2) {
-  FluentNode *nodeA = (FluentNode *)node1;
-  FluentNode *nodeB = (FluentNode *)node2;
-  return (nodeA->x > nodeB->x) - (nodeA->x < nodeB->x);
-}
 
-int ySorter(const void *node1, const void *node2) {
-  FluentNode *nodeA = (FluentNode *)node1;
-  FluentNode *nodeB = (FluentNode *)node2;
-  return (nodeA->y > nodeB->y) - (nodeA->y < nodeB->y);
+int ySorter(const void *point1, const void *point2) {
+  Point2D* pointA = (Point2D*)point1;
+  Point2D* pointB = (Point2D*)point2;
+  return (pointA->y > pointB->y) - (pointA->y < pointB->y);
 }
 
 void transpose(FluentNode *arr, int numRows, int numCols) {
@@ -313,6 +308,32 @@ void transpose(FluentNode *arr, int numRows, int numCols) {
     free(transposed[i]);
   }
   free(transposed);
+}
+
+
+int isBoundary(const Node* nodes, int block){
+  int boundaries[] = {0, 13, 1, 54, 0, 58, 1, 1007, 0, 135, 1, 133, 0, 107};
+  int n_boundaries = 14;
+
+  for (int i = 0; i < n_boundaries; i = i+2) {
+    if (nodes[block].entityDim == boundaries[i] && 
+        nodes[block].entityTag == boundaries[i+1])
+      return 1;
+  }
+  return 0;
+}
+
+
+int isReversed(const Node* nodes, int block){
+  int revBlocks[] = {1, 108, 2, 110, 1, 109, 2, 114, 1, 113, 2, 118, 1, 117, 2, 122, 1, 121, 2, 126, 1, 125, 2, 130, 1, 129, 2, 134, 1, 133};
+  int n_revBlocks = 30;
+
+  for (int i = 0; i < n_revBlocks; i = i+2) {
+    if (nodes[block].entityDim == revBlocks[i] && 
+        nodes[block].entityTag == revBlocks[i+1])
+      return 1;
+  }
+  return 0;
 }
 
 int writeFluent(const char *outputFile, const Node *nodes,
@@ -383,6 +404,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   int col_idx_tmp = 0;
 
   int isHorizontal = 1;
+  int revBlockDimY = 0;
   // Traverse mesh structure
   for (int i = 0; i < 2 * (numEntityBlocks - 1); i = i + 2) {
 
@@ -391,6 +413,32 @@ int writeFluent(const char *outputFile, const Node *nodes,
     while (nodes[block].entityDim != meshStructure[i] || 
            nodes[block].entityTag != meshStructure[i + 1]) {
       block++;
+    }
+    
+    // reorder reversed blocks
+    Point2D* shuffler = (Point2D*)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
+    for (int i=0; i < nodes[block].numNodesInBlock; ++i) {
+      shuffler[i].x = nodes[block].x[i];
+      shuffler[i].y = nodes[block].y[i];
+      shuffler[i].tag = nodes[block].nodeTags[i];
+    }
+    if (isReversed(nodes, block)) {
+      if (nodes[block].entityDim == 1){
+        qsort(shuffler, nodes[block].numNodesInBlock, sizeof(Point2D), ySorter);
+        if (revBlockDimY == 0) {
+          revBlockDimY = nodes[block].numNodesInBlock;
+        }
+      }
+      else if (nodes[block].entityDim == 2){
+        for (int i = 0; i < nodes[block].numNodesInBlock/revBlockDimY; ++i){
+          qsort(shuffler + i * revBlockDimY, revBlockDimY, sizeof(Point2D), ySorter); 
+        }
+      }
+      for (int i = 0; i < nodes[block].numNodesInBlock; ++i) {
+        nodes[block].x[i] = shuffler[i].x;
+        nodes[block].y[i] = shuffler[i].y;
+        nodes[block].nodeTags[i] = shuffler[i].tag;
+      }
     }
     // printf("%d\n", block);
 
@@ -422,13 +470,16 @@ int writeFluent(const char *outputFile, const Node *nodes,
           fNodes[col_idx_tmp * dimX + row_idx].y = nodes[block].y[k];
           fNodes[col_idx_tmp * dimX + row_idx].tag =
               col_idx_tmp * dimX + row_idx;
-          if (k+1 == nodes[block].numNodesInBlock){
-            col_idx_tmp = col_idx;
-            continue;
+
+          if (k+1 != nodes[block].numNodesInBlock){
+            if (nodes[block].y[k+1] > nodes[block].y[k]) {
+              col_idx_tmp++;
+            }
+            else {
+              col_idx_tmp = col_idx;
+              row_idx++;
+            }
           }
-          
-          if (nodes[block].y[k+1] > nodes[block].y[k])
-            col_idx_tmp++;
           else {
             col_idx_tmp = col_idx;
             row_idx++;
@@ -437,13 +488,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
       }
     }
 
-    if (nodes[block].entityTag == 13 || 
-        nodes[block].entityTag == 54 ||
-        nodes[block].entityTag == 58 ||
-        nodes[block].entityTag == 1007 ||
-        nodes[block].entityTag == 135 ||
-        nodes[block].entityTag == 133 ||
-        nodes[block].entityTag == 107) {
+    if (isBoundary(nodes, block)) {
       row_idx = 0;
       if (isHorizontal > 0)
         col_idx++;
@@ -456,6 +501,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
       else
         isHorizontal = -1;
     }
+    free(shuffler);
   }
 
   //   // flatten nodes

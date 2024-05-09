@@ -56,6 +56,11 @@ typedef struct {
   int tag;
 } FluentNode;
 
+typedef struct {
+  double x, y;
+  int tag;
+} Point2D;
+
 
 int readGmsh(const char* fileName, Point** points, int* numPoints, Curve** curves, int* numCurves, Surface** surfaces, int* numSurfaces, Node** nodes, int* numEntityBlocks, Element** elements, int* numEntityBlocksElem, int* numNodes);
 
@@ -64,10 +69,11 @@ void print_title(void);
 
 int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBlocks, const int numNodes, const Diamond* diamond, const MeshConfig* meshConfig);
 
-int xSorter(const void* node1, const void* node2);
 int ySorter(const void* node1, const void* node2);
 
 void transpose(FluentNode* arr, int numCols, int numRows);
 void readMeshStructure(const char* fileName, int* meshStructure,int n_meshStructure);
 
+int isBoundary(const Node* nodes, int block);
+int isReversed(const Node* nodes, int block);
 #endif // CONVERTER_H
