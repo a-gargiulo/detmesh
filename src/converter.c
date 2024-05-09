@@ -277,10 +277,9 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
   return 0;
 }
 
-
 int ySorter(const void *point1, const void *point2) {
-  Point2D* pointA = (Point2D*)point1;
-  Point2D* pointB = (Point2D*)point2;
+  Point2D *pointA = (Point2D *)point1;
+  Point2D *pointB = (Point2D *)point2;
   return (pointA->y > pointB->y) - (pointA->y < pointB->y);
 }
 
@@ -310,27 +309,27 @@ void transpose(FluentNode *arr, int numRows, int numCols) {
   free(transposed);
 }
 
-
-int isBoundary(const Node* nodes, int block){
+int isBoundary(const Node *nodes, int block) {
   int boundaries[] = {0, 13, 1, 54, 0, 58, 1, 1007, 0, 135, 1, 133, 0, 107};
   int n_boundaries = 14;
 
-  for (int i = 0; i < n_boundaries; i = i+2) {
-    if (nodes[block].entityDim == boundaries[i] && 
-        nodes[block].entityTag == boundaries[i+1])
+  for (int i = 0; i < n_boundaries; i = i + 2) {
+    if (nodes[block].entityDim == boundaries[i] &&
+        nodes[block].entityTag == boundaries[i + 1])
       return 1;
   }
   return 0;
 }
 
-
-int isReversed(const Node* nodes, int block){
-  int revBlocks[] = {1, 108, 2, 110, 1, 109, 2, 114, 1, 113, 2, 118, 1, 117, 2, 122, 1, 121, 2, 126, 1, 125, 2, 130, 1, 129, 2, 134, 1, 133};
+int isReversed(const Node *nodes, int block) {
+  int revBlocks[] = {1, 108, 2, 110, 1, 109, 2, 114, 1, 113,
+                     2, 118, 1, 117, 2, 122, 1, 121, 2, 126,
+                     1, 125, 2, 130, 1, 129, 2, 134, 1, 133};
   int n_revBlocks = 30;
 
-  for (int i = 0; i < n_revBlocks; i = i+2) {
-    if (nodes[block].entityDim == revBlocks[i] && 
-        nodes[block].entityTag == revBlocks[i+1])
+  for (int i = 0; i < n_revBlocks; i = i + 2) {
+    if (nodes[block].entityDim == revBlocks[i] &&
+        nodes[block].entityTag == revBlocks[i + 1])
       return 1;
   }
   return 0;
@@ -339,7 +338,6 @@ int isReversed(const Node* nodes, int block){
 int writeFluent(const char *outputFile, const Node *nodes,
                 const int numEntityBlocks, const int numNodes,
                 const Diamond *diamond, const MeshConfig *meshConfig) {
-
   FILE *file;
   int numFluentNodes = numNodes - 1;  // discard arc center
   FluentNode *fNodes =
@@ -386,12 +384,6 @@ int writeFluent(const char *outputFile, const Node *nodes,
   printf("DIMENSION Y: %d\n", dimY);
   printf("DIMENSION X: %d\n", dimX);
 
-  // for (int i = 0; i < 2 * (numEntityBlocks - 1); i = i + 2) {
-  //   printf("%d %d\n", meshStructure[i], meshStructure[i+1]);
-  // }
-
-
-
   int row_idx = 0;
   int col_idx = 0;
   int col_idx_tmp = 0;
@@ -400,32 +392,32 @@ int writeFluent(const char *outputFile, const Node *nodes,
   int revBlockDimY = 0;
   // Traverse mesh structure
   for (int i = 0; i < 2 * (numEntityBlocks - 1); i = i + 2) {
-
-    // Search block of nodes 
+    // Search block of nodes
     block = 0;
-    while (nodes[block].entityDim != meshStructure[i] || 
+    while (nodes[block].entityDim != meshStructure[i] ||
            nodes[block].entityTag != meshStructure[i + 1]) {
       block++;
     }
-    
+
     // reorder reversed blocks
-    Point2D* shuffler = (Point2D*)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
-    for (int m=0; m < nodes[block].numNodesInBlock; ++m) {
+    Point2D *shuffler =
+        (Point2D *)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
+    for (int m = 0; m < nodes[block].numNodesInBlock; ++m) {
       shuffler[m].x = nodes[block].x[m];
       shuffler[m].y = nodes[block].y[m];
       shuffler[m].tag = nodes[block].nodeTags[m];
     }
 
     if (isReversed(nodes, block)) {
-      if (nodes[block].entityDim == 1){
+      if (nodes[block].entityDim == 1) {
         qsort(shuffler, nodes[block].numNodesInBlock, sizeof(Point2D), ySorter);
         if (revBlockDimY == 0) {
           revBlockDimY = nodes[block].numNodesInBlock;
         }
-      }
-      else if (nodes[block].entityDim == 2){
-        for (int m = 0; m < nodes[block].numNodesInBlock/revBlockDimY; ++m){
-          qsort(shuffler + m * revBlockDimY, revBlockDimY, sizeof(Point2D), ySorter); 
+      } else if (nodes[block].entityDim == 2) {
+        for (int m = 0; m < nodes[block].numNodesInBlock / revBlockDimY; ++m) {
+          qsort(shuffler + m * revBlockDimY, revBlockDimY, sizeof(Point2D),
+                ySorter);
         }
       }
       for (int m = 0; m < nodes[block].numNodesInBlock; ++m) {
@@ -434,15 +426,6 @@ int writeFluent(const char *outputFile, const Node *nodes,
         nodes[block].nodeTags[m] = shuffler[m].tag;
       }
     }
-    // printf("%d\n", block);
-    
-    // printf("%d: %d %d\n", i, nodes[block].entityDim, nodes[block].entityTag);
-    // if (i==60){
-    //   printf("%d %d\n", nodes[block].entityDim, nodes[block].entityTag);
-    //   for (int m = 0; m < nodes[block].numNodesInBlock;++m) {
-    //     printf("%lf %lf %d\n",nodes[block].x[m], nodes[block].y[m], nodes[block].nodeTags[m]);
-    //   }
-    // }
 
     // Process each block of nodes sequentially
     if (isHorizontal > 0) {
@@ -473,16 +456,15 @@ int writeFluent(const char *outputFile, const Node *nodes,
           fNodes[col_idx_tmp * dimX + row_idx].tag =
               col_idx_tmp * dimX + row_idx;
 
-          if (k+1 != nodes[block].numNodesInBlock){
-            if (nodes[block].y[k+1] > nodes[block].y[k] && fabs(nodes[block].x[k+1]-nodes[block].x[k]) < 1e-4) {
+          if (k + 1 != nodes[block].numNodesInBlock) {
+            if (nodes[block].y[k + 1] > nodes[block].y[k] &&
+                fabs(nodes[block].x[k + 1] - nodes[block].x[k]) < 1e-4) {
               col_idx_tmp++;
-            }
-            else {
+            } else {
               col_idx_tmp = col_idx;
               row_idx++;
             }
-          }
-          else {
+          } else {
             col_idx_tmp = col_idx;
             row_idx++;
           }
@@ -497,73 +479,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       else
         col_idx = col_idx + nodes[block].numNodesInBlock;
       n++;
-      if (n % 2 == 0){
+      if (n % 2 == 0) {
         isHorizontal = 1;
-      }
-      else
+      } else
         isHorizontal = -1;
     }
     free(shuffler);
   }
-
-  //   // flatten nodes
-  //   int k = 0;
-  //   for (int i = 0; i < numEntityBlocks; ++i) {
-  //     for (int j = 0; j < nodes[i].numNodesInBlock; ++j)
-  //     {
-  //       if (nodes[i].x[j] == meshConfig->sUp + diamond->cx && nodes[i].y[j]
-  //       == diamond->cy)
-  //       {
-  //         printf("--> Arc center FOUND and eliminated.\n");
-  //         continue;
-  //       }
-  //       fNodes[k].x = nodes[i].x[j];
-  //       fNodes[k].y = nodes[i].y[j];
-  //       fNodes[k].tag = nodes[i].nodeTags[j];
-  //       k++;
-  //     }
-  //   }
-  //
-
-  //  printf("CHECK Dimensionality... ");
-  //  if (m == numFluentNodes) {
-  //    printf("PASSED!\n");
-  //  }
-  //  else {
-  //    fprintf(stderr, "ERROR: Dimensionality check failed.\n");
-  //    return 1;
-  //  }
-
-  //  // sort nodes based on x
-  //  qsort(fNodes, numFluentNodes, sizeof(FluentNode), xSorter);
-
-  //  // // find number of nodes with x=0
-  //  // int dimY = 0;
-  //  // for (int i = 0; i < numFluentNodes; ++i) {
-  //  //   if (fNodes[i].x == 0.0)
-  //  //     dimY++;
-  //  // }
-  //  // int dimX = numFluentNodes/dimY;
-  //  printf("Number of Nodes: %d\n", numFluentNodes);
-  //  printf("Dimension Y: %d\n", dimY);
-  //  printf("Dimension X: %d\n", dimX);
-
-  //  //sort every dimY points by y
-  //  printf("SORTING Y... ");
-  //  for (int i = 0; i < dimX; ++i){
-  //   qsort(fNodes + i * dimY, dimY, sizeof(FluentNode), ySorter);
-  //  }
-  //  printf("Done!\n");
-
-  //  ////transpose array
-  //  //printf("TRANSPOSING array...");
-  //  //transpose(fNodes, dimY, dimX);
-  //  //printf("Done!\n");
-
-  //  //re-index
-  //  for (int i = 0; i < numFluentNodes; ++i) {
-  //    fNodes[i].tag = i + 1;
-  //  }
 
   printf("WRITING plot_data.txt... ");
   FILE *tmpFile;
@@ -574,219 +496,226 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fclose(tmpFile);
   printf("Done!\n");
 
-  //  int numFluentCells = (dimX - 1) * (dimY - 1);
-  //  int numFluentFaces = dimX * (dimY - 1) + dimY * (dimX - 1);
-  //  int numFluentFacesTop = dimX - 1;
-  //  int numFluentFacesIO = dimY - 1;
+  int numFluentCells = (dimX - 1) * (dimY - 1);
+  int numFluentFaces = dimX * (dimY - 1) + dimY * (dimX - 1);
+  int numFluentFacesTop = dimX - 1;
+  int numFluentFacesIO = dimY - 1;
 
-  //  //find nr of diamond and free surface faces on symmetry boundary
-  //  int idx_up=0;
-  //  int idx_diamond=0;
-  //  for (int i=0; i < dimX; ++i) {
-  //    if (fNodes[i].x == meshConfig->sUp)
-  //    {
-  //      idx_up = i;
-  //      printf("FOUND 1\n");
-  //    }
-  //    else if (fNodes[i].x == meshConfig->sUp + diamond->l)
-  //    {
-  //      idx_diamond = i;
-  //      printf("FOUND 2\n");
-  //    }
-  //  }
+  // find nr of diamond and free surface faces on symmetry boundary
+  // boundary points
+  int bndPts[2] = {3, 11};
+  int n_bndPts = 2;
+  int bndBlocks[2] = {0, 0};
+  for (int i= 0; i < n_bndPts; ++i) {
+    while (nodes[bndBlocks[i]].entityDim != 0 ||
+           nodes[bndBlocks[i]].entityTag != bndPts[i]) {
+      bndBlocks[i]++;
+    }
+  }
+ 
+  int idx_up = 0;
+  int idx_down = 0;
+  for (int i = 0; i < dimX; ++i) {
+    if (fNodes[i].x <= *nodes[bndBlocks[0]].x && fNodes[i].y == 0.0) {
+      idx_up++;
+    } else if (fNodes[i].x >= *nodes[bndBlocks[1]].x && fNodes[i].y == 0.0) {
+      idx_down++;
+    }
+  }
 
-  //  int numFluentFacesUp = idx_up;
-  //  int numFluentFacesDiamond = idx_diamond - idx_up;
-  //  int numFluentFacesDown = (dimX-1) - idx_diamond;
+  int numFluentFacesUp = idx_up-1;
+  int numFluentFacesDown = idx_down-1;
+  int numFluentFacesDiamond = dimX - idx_up - idx_down + 1;
 
-  //  int numFluentFacesInterior = numFluentFaces - 2*numFluentFacesIO -
-  //  numFluentFacesTop - numFluentFacesUp - numFluentFacesDiamond -
-  //  numFluentFacesDown;
+  int numFluentFacesInterior = numFluentFaces - 2 * numFluentFacesIO -
+                               numFluentFacesTop - numFluentFacesUp -
+                               numFluentFacesDiamond - numFluentFacesDown;
 
-  //  int row;
-  //  int col;
+  int row;
+  int col;
 
-  //  int n1;
-  //  int n2;
-  //  int c1;
-  //  int c2;
+  int n1;
+  int n2;
+  int c1;
+  int c2;
 
-  //  file = fopen(outputFile, "w");
+  file = fopen(outputFile, "w");
 
-  //  if (file == NULL) {
-  //    fprintf(stderr, "ERROR: Output file could not be opened!\n");
-  //    return 1;
-  //  }
+  if (file == NULL) {
+    fprintf(stderr, "ERROR: Output file could not be opened!\n");
+    return 1;
+  }
 
-  //  fprintf(file, "(0 \"Diamond Mesh:\")\n");
-  //  fprintf(file, "\n");
-  //  fprintf(file, "(0 \"Dimensions:\")\n");
-  //  fprintf(file, "(2 2)\n");
-  //  fprintf(file, "\n");
-  //  fprintf(file, "(12 (0 1 %x 0))\n", numFluentCells);
-  //  fprintf(file, "(13 (0 1 %x 0))\n", numFluentFaces);
-  //  fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
-  //  fprintf(file, "\n");
-  //  fprintf(file, "(12 (2 1 %x 1 3))\n", numFluentCells);
-  //  fprintf(file, "\n");
+  fprintf(file, "(0 \"Diamond Mesh:\")\n");
+  fprintf(file, "\n");
+  fprintf(file, "(0 \"Dimensions:\")\n");
+  fprintf(file, "(2 2)\n");
+  fprintf(file, "\n");
+  fprintf(file, "(12 (0 1 %x 0))\n", numFluentCells);
+  fprintf(file, "(13 (0 1 %x 0))\n", numFluentFaces);
+  fprintf(file, "(10 (0 1 %x 0 2))\n", numFluentNodes);
+  fprintf(file, "\n");
+  fprintf(file, "(12 (2 1 %x 1 3))\n", numFluentCells);
+  fprintf(file, "\n");
 
-  //  // interior
-  //  fprintf(file, "(13 (3 %x %x 2 2)(\n", 1, numFluentFacesInterior);
-  //  for (int i = 0; i < numFluentNodes; ++i){
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
+  // interior
+  fprintf(file, "(13 (3 1 %x %x 2)(\n", numFluentFacesInterior, 2);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //    if (col > 0 && col < dimX -1 && row < dimY - 1) {
-  //      n1 = i + 1;
-  //      n2 = i + dimX + 1;
-  //      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
-  //      c2 = c1 + 1;
-  //      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
+    if (col > 0 && col < dimX - 1 && row < dimY - 1) {
+      n1 = i + 1;
+      n2 = i + dimX + 1;
+      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
+      c2 = c1 + 1;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
 
-  //    if (row > 0 && row < dimY -1 && col < dimX -1) {
-  //      n1 = i + 2;
-  //      n2 = i + 1;
-  //      c2 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i +  1 + dimX)
-  //      % dimX; c1 = c2 - dimX + 1; fprintf(file, "%x %x %x %x\n", n1, n2, c1,
-  //      c2);
-  //    }
+    if (row > 0 && row < dimY - 1 && col < dimX - 1) {
+      n1 = i + 2;
+      n2 = i + 1;
+      c2 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
+           (i + 1 + dimX) % dimX;
+      c1 = c2 - dimX + 1;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
+  // inlet
+  fprintf(file, "(13 (4 %x %x 4 2)(\n", numFluentFacesInterior + 1,
+          numFluentFacesInterior + numFluentFacesIO);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //  //inlet
-  //  fprintf(file, "(13 (4 %x %x 4 2)(\n", numFluentFacesInterior+1,
-  //  numFluentFacesInterior + numFluentFacesIO); for (int i = 0; i <
-  //  numFluentNodes; ++i){
+    if (col == 0 && row < dimY - 1) {
+      n1 = i + dimX + 1;
+      n2 = i + 1;
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
+           (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
+  // outlet
+  fprintf(file, "(13 (5 %x %x 5 2)(\n",
+          numFluentFacesInterior + numFluentFacesIO + 1,
+          numFluentFacesInterior + 2 * numFluentFacesIO);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //    if (col == 0 && row < dimY - 1)
-  //    {
-  //      n1 = i + dimX + 1;
-  //      n2 = i + 1;
-  //      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX)
-  //      % dimX; c2 = 0; fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
+    if (col == dimX - 1 && row < dimY - 1) {
+      n1 = i + 1;
+      n2 = i + dimX + 1;
+      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //  //outlet
-  //  fprintf(file, "(13 (5 %x %x 5 2)(\n", numFluentFacesInterior +
-  //  numFluentFacesIO + 1, numFluentFacesInterior + 2*numFluentFacesIO); for
-  //  (int i = 0; i < numFluentNodes; ++i){
+  // symmetry up
+  fprintf(file, "(13 (6 %x %x 7 2)(\n",
+          numFluentFacesInterior + 2 * numFluentFacesIO + 1,
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
+    if (row == 0 && col < dimX - 1 && fNodes[i].x < meshConfig->sUp) {
+      n1 = i + 1;
+      n2 = i + 2;
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
+           (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //    if (col == dimX -1 && row < dimY - 1)
-  //    {
-  //      n1 = i + 1;
-  //      n2 = i + dimX + 1;
-  //      c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
-  //      c2 = 0;
-  //      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
+  // diamond
+  fprintf(file, "(13 (7 %x %x 3 2)(\n",
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp + 1,
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
+              numFluentFacesDiamond);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //  //symmetry up
-  //  fprintf(file, "(13 (6 %x %x 7 2)(\n", numFluentFacesInterior +
-  //  2*numFluentFacesIO + 1, numFluentFacesInterior + 2*numFluentFacesIO+
-  //  numFluentFacesUp); for (int i = 0; i < numFluentNodes; ++i){
+    if (row == 0 && col < dimX - 1 && fNodes[i].x >= meshConfig->sUp &&
+        fNodes[i].x < meshConfig->sUp + diamond->l) {
+      n1 = i + 1;
+      n2 = i + 2;
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
+           (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
+  // symmetry down
+  fprintf(file, "(13 (8 %x %x 7 2)(\n",
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
+              numFluentFacesDiamond + 1,
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
+              numFluentFacesDiamond + numFluentFacesDown);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //    if (row == 0 && col < dimX - 1 && fNodes[i].x < meshConfig->sUp)
-  //    {
-  //      n1 = i + 1;
-  //      n2 = i + 2;
-  //      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX)
-  //      % dimX; c2 = 0; fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
+    if (row == 0 && col < dimX - 1 &&
+        fNodes[i].x > meshConfig->sUp + diamond->l) {
+      n1 = i + 1;
+      n2 = i + 2;
+      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
+           (i + 1 + dimX) % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //  //diamond
-  //  fprintf(file, "(13 (7 %x %x 3 2)(\n", numFluentFacesInterior +
-  //  2*numFluentFacesIO + numFluentFacesUp + 1,numFluentFacesInterior +
-  //  2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond); for (int i
-  //  = 0; i < numFluentNodes; ++i){
+  // top wall
+  fprintf(file, "(13 (9 %x %x 3 2)(\n",
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
+              numFluentFacesDiamond + numFluentFacesDown + 1,
+          numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
+              numFluentFacesDiamond + numFluentFacesDown + numFluentFacesTop);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    row = floor(i / dimX);
+    col = i % dimX;
 
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
+    if (row == dimY - 1 && col < dimX - 1) {
+      n1 = i + 2;
+      n2 = i + 1;
+      c1 = (floor(i / dimX) - 1) * (dimX - 1) + i % dimX;
+      c2 = 0;
+      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
+    }
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
+  fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
+  for (int i = 0; i < numFluentNodes; ++i) {
+    fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
+  }
+  fprintf(file, "))\n");
+  fprintf(file, "\n");
 
-  //    if (row == 0 && col < dimX - 1 && fNodes[i].x >= meshConfig->sUp &&
-  //    fNodes[i].x < meshConfig->sUp + diamond->l)
-  //    {
-  //      n1 = i + 1;
-  //      n2 = i + 2;
-  //      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX)
-  //      % dimX; c2 = 0; fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
-
-  //  //symmetry down
-  //  fprintf(file, "(13 (8 %x %x 7 2)(\n",numFluentFacesInterior +
-  //  2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond + 1,
-  //  numFluentFacesInterior + 2*numFluentFacesIO + numFluentFacesUp +
-  //  numFluentFacesDiamond + numFluentFacesDown); for (int i = 0; i <
-  //  numFluentNodes; ++i){
-
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
-
-  //    if (row == 0 && col < dimX - 1 && fNodes[i].x > meshConfig->sUp +
-  //    diamond->l)
-  //    {
-  //      n1 = i + 1;
-  //      n2 = i + 2;
-  //      c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) + (i + 1 + dimX)
-  //      % dimX; c2 = 0; fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
-
-  //  //top wall
-  //  fprintf(file, "(13 (9 %x %x 3 2)(\n", numFluentFacesInterior +
-  //  2*numFluentFacesIO + numFluentFacesUp + numFluentFacesDiamond +
-  //  numFluentFacesDown + 1,numFluentFacesInterior + 2*numFluentFacesIO +
-  //  numFluentFacesUp + numFluentFacesDiamond +
-  //  numFluentFacesDown+numFluentFacesTop); for (int i = 0; i < numFluentNodes;
-  //  ++i){
-
-  //    row = floor(i / dimX);
-  //    col = i % dimX;
-
-  //    if (row == dimY - 1 && col < dimX - 1)
-  //    {
-  //      n1 = i + 2;
-  //      n2 = i + 1;
-  //      c1 = (floor(i / dimX) - 1) * (dimX - 1) + i % dimX;
-  //      c2 = 0;
-  //      fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
-  //    }
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
-  //  fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
-  //  for (int i = 0; i < numFluentNodes; ++i) {
-  //    fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
-  //  }
-  //  fprintf(file, "))\n");
-  //  fprintf(file, "\n");
-
-  //  fclose(file);
+  fclose(file);
+  printf("FILE WRITTEN!\n");
   free(fNodes);
   free(meshStructure);
   return 0;
