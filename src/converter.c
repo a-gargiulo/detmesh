@@ -539,6 +539,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   int c1;
   int c2;
 
+  int count;
   file = fopen(outputFile, "w");
 
   if (file == NULL) {
@@ -558,13 +559,16 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "(12 (2 1 %x 1 3))\n", numFluentCells);
   fprintf(file, "\n");
 
-  // interior
+  // interior -- CHECKED!
+  count = 0;
   fprintf(file, "(13 (3 1 %x %x 2)(\n", numFluentFacesInterior, 2);
   for (int i = 0; i < numFluentNodes; ++i) {
     row = floor(i / dimX);
     col = i % dimX;
 
+    //vertical
     if (col > 0 && col < dimX - 1 && row < dimY - 1) {
+      count++;
       n1 = i + 1;
       n2 = i + dimX + 1;
       c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
@@ -572,7 +576,9 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
 
+    //horizontal
     if (row > 0 && row < dimY - 1 && col < dimX - 1) {
+      count++;
       n1 = i + 2;
       n2 = i + 1;
       c2 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
@@ -581,10 +587,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Interior faces effective: %d\n", count);
+  printf("Interior faces: %d\n", numFluentFacesInterior);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // inlet
+  // inlet -- CHECKED!
+  count=0;
   fprintf(file, "(13 (4 %x %x 4 2)(\n", numFluentFacesInterior + 1,
           numFluentFacesInterior + numFluentFacesIO);
   for (int i = 0; i < numFluentNodes; ++i) {
@@ -592,6 +601,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
     col = i % dimX;
 
     if (col == 0 && row < dimY - 1) {
+      count++;
       n1 = i + dimX + 1;
       n2 = i + 1;
       c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
@@ -600,18 +610,22 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Inlet faces effective: %d\n", count);
+  printf("Inlet faces: %d\n", numFluentFacesIO);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // outlet
+  // outlet -- CHECKED!
   fprintf(file, "(13 (5 %x %x 5 2)(\n",
           numFluentFacesInterior + numFluentFacesIO + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO);
+  count=0;
   for (int i = 0; i < numFluentNodes; ++i) {
     row = floor(i / dimX);
     col = i % dimX;
 
     if (col == dimX - 1 && row < dimY - 1) {
+      count++;
       n1 = i + 1;
       n2 = i + dimX + 1;
       c1 = (floor((i + dimX) / dimX) - 1) * (dimX - 1) + (i + dimX) % dimX;
@@ -619,10 +633,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Outlet faces effective: %d\n", count);
+  printf("Outlet faces: %d\n", numFluentFacesIO);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // symmetry up
+  // symmetry up -- CHECKED!
+  count=0;
   fprintf(file, "(13 (6 %x %x 7 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp);
@@ -631,6 +648,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
     col = i % dimX;
 
     if (row == 0 && col < dimX - 1 && fNodes[i].x < meshConfig->sUp) {
+      count++;
       n1 = i + 1;
       n2 = i + 2;
       c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
@@ -639,10 +657,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Symmetry Up faces effective: %d\n", count);
+  printf("Symmetry Up faces: %d\n", numFluentFacesUp);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // diamond
+  // diamond -- CHECKED!
+  count=0;
   fprintf(file, "(13 (7 %x %x 3 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
@@ -653,6 +674,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
 
     if (row == 0 && col < dimX - 1 && fNodes[i].x >= meshConfig->sUp &&
         fNodes[i].x < meshConfig->sUp + diamond->l) {
+      count++;
       n1 = i + 1;
       n2 = i + 2;
       c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
@@ -661,10 +683,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Diamond faces effective: %d\n", count);
+  printf("Diamond faces: %d\n", numFluentFacesDiamond);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // symmetry down
+  // symmetry down -- CHECKED!
+  count=0;
   fprintf(file, "(13 (8 %x %x 7 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
               numFluentFacesDiamond + 1,
@@ -675,7 +700,8 @@ int writeFluent(const char *outputFile, const Node *nodes,
     col = i % dimX;
 
     if (row == 0 && col < dimX - 1 &&
-        fNodes[i].x > meshConfig->sUp + diamond->l) {
+        fNodes[i].x >= meshConfig->sUp + diamond->l) {
+      count++;
       n1 = i + 1;
       n2 = i + 2;
       c1 = (floor((i + 1 + dimX) / dimX) - 1) * (dimX - 1) +
@@ -684,10 +710,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
+  printf("Symmetry down faces effective: %d\n", count);
+  printf("Symmetry down faces: %d\n", numFluentFacesDown);
   fprintf(file, "))\n");
   fprintf(file, "\n");
 
-  // top wall
+  // top wall -- CHECKED!
+  count=0;
   fprintf(file, "(13 (9 %x %x 3 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
               numFluentFacesDiamond + numFluentFacesDown + 1,
@@ -697,16 +726,20 @@ int writeFluent(const char *outputFile, const Node *nodes,
     row = floor(i / dimX);
     col = i % dimX;
 
-    if (row == dimY - 1 && col < dimX - 1) {
+    if (row == dimY-1  && col < dimX - 1) {
+      count++;
       n1 = i + 2;
       n2 = i + 1;
-      c1 = (floor(i / dimX) - 1) * (dimX - 1) + i % dimX;
+      c1 = (floor((i + 1) / dimX) - 1) * (dimX - 1) + (i+1) % dimX;
       c2 = 0;
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
   }
   fprintf(file, "))\n");
   fprintf(file, "\n");
+  printf("Top faces effective: %d\n", count);
+  printf("Top faces: %d\n", numFluentFacesTop);
+  printf("CELLS: %d\n", numFluentCells);
   fprintf(file, "(10 (1 1 %x 1 2)(\n", numFluentNodes);
   for (int i = 0; i < numFluentNodes; ++i) {
     fprintf(file, "%.6e %.6e\n", fNodes[i].x, fNodes[i].y);
