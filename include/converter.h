@@ -1,33 +1,27 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
+#include <stddef.h>
 #include "diamond.h"
 #include "mesh.h"
+
 typedef struct {
   int tag;
-  double x; 
-  double y; 
-  double z;
+  double x, y, z; 
 } Point; 
 
 typedef struct {
   int tag;
-  double minX; 
-  double minY;
-  double minZ;
-  double maxX;
-  double maxY;
-  double maxZ;
+  double minX, maxX; 
+  double minY, maxY; 
+  double minZ, maxZ; 
   int tagsBoundingPoints[2]; // lines
 } Curve;
 
 typedef struct {
   int tag;
-  double minX;
-  double minY;
-  double minZ;
-  double maxX;
-  double maxY;
-  double maxZ;
+  double minX, maxX; 
+  double minY, maxY; 
+  double minZ, maxZ; 
   int tagsBoundingCurves[4]; // quads
 } Surface;
 
@@ -35,8 +29,8 @@ typedef struct {
 typedef struct {
   int entityDim;
   int entityTag;
-  int numNodesInBlock;
-  int* nodeTags;
+  size_t numNodesInBlock;
+  size_t* nodeTags;
   double* x;
   double* y;
   double* z;
@@ -46,9 +40,9 @@ typedef struct {
   int entityDim;
   int entityTag;
   int elementType;
-  int numElementsInBlock;
-  int* elementTags;
-  int* nodeTags;
+  size_t numElementsInBlock;
+  size_t* elementTags;
+  size_t* nodeTags;
 } Element;
 
 typedef struct {
@@ -62,10 +56,8 @@ typedef struct {
 } Point2D;
 
 
-int readGmsh(const char* fileName, Point** points, int* numPoints, Curve** curves, int* numCurves, Surface** surfaces, int* numSurfaces, Node** nodes, int* numEntityBlocks, Element** elements, int* numEntityBlocksElem, int* numNodes);
+int read_gmsh(const char* file_name, Point** points, size_t* n_points, Curve** curves, size_t* n_curves, Surface** surfaces, size_t* n_surfaces, Node** nodes, size_t* n_entity_blocks, Element** elements, size_t* n_entity_blocks_element, size_t* n_nodes);
 
-
-void print_title(void);
 
 int writeFluent(const char* outputFile, const Node* nodes, const int numEntityBlocks, const int numNodes, const Diamond* diamond, const MeshConfig* meshConfig);
 

@@ -9,10 +9,6 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 add_compile_options(-Wall -Wextra -pedantic)
 
-# if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    # add_compile_options(/Wall)
-# endif()
-
 file(GLOB SRCS "${PROJECT_SOURCE_DIR}/src/*.c")
 
 include_directories("${PROJECT_SOURCE_DIR}/lib/gmsh/include/")

@@ -17,6 +17,6 @@ typedef struct {
 void arc_constraints(int n, double* x, double* fvec, int nXtraArgs,
                      double* xtraArgs);
 
-void calculate_arc_parameters(double* xInit, Diamond* diamond);
+int calculate_arc_parameters(double* x_guess, Diamond* diamond);
 
 #endif  // DIAMOND_H

@@ -1,17 +1,27 @@
 #ifndef PARSING_H
 #define PARSING_H
 
-#define BUFFER_SIZE 100
+#include <stdbool.h>
+#include <stddef.h>
 
 #include "diamond.h"
 #include "mesh.h"
 
-void trim(char** str, int* err);
 
-void get_var_val(char** buffer, char** var, char** val, int* err);
+typedef struct {
+  const char* name;
+  double* ptr_to_value;
+} VariableMapping;
 
-void format_var(char* str);
+void trim(char** str);
 
-int parse_input(const char* filename, Diamond* diamond, double* x_guess, MeshConfig* config);
+void format_variable_name(char* str);
+
+bool is_variable(const char* var, const char* name);
+
+int update_variable(const char* name, const double* value, VariableMapping* mapping, size_t n_mapping);
+
+int parse_user_input(const char* file_name, Diamond* diamond, double* x_guess,
+                     MeshConfig* config);
 
 #endif  // PARSING_H

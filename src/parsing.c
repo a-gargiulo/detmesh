@@ -1,131 +1,118 @@
 #include "parsing.h"
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "diamond.h"
 #include "error.h"
 #include "mesh.h"
 
-void trim(char** str, int* err) {
+#define PARSER_LINE_BUFFER_SIZE 1024
+#define PARSER_VARIABLE_NAME_BUFFER_SIZE 100
 
-  if (*str == NULL) {
-    *err = ERROR_NULL_POINTER;
-    return;
-  }
+void trim(char **str)
+{
+    while (isspace(**str))
+        (*str)++;
 
-  // Leading white space
-  while (isspace(**str))
-    (*str)++;
-
-  if (**str == '\0') {
-    *err = SUCCESS;
-    return;
-  }
-
-  // Trailing whitespace
-  char* end = *str + strlen(*str) - 1;
-  while (end > *str && isspace(*end))
-    end--;
-  
-  *(end + 1) = '\0';
-
-  *err = SUCCESS;
-  return;
-
-}
-
-void format_var(char* str) {
-  int len = strlen(str);
-  for (int i = 0; i < len; i++) {
-    str[i] = tolower(str[i]);
-    if (isspace(str[i])) {
-      str[i] = '_';
-    }
-  }
-}
-
-
-void get_var_val(char** buffer, char** var, char** val, int* err) {
-    *var = strtok(*buffer, "(=");
-    strtok(NULL, "(=");
-    *val = strtok(NULL, "(=");
-    trim(var, err);
-    trim(val, err);
-    format_var(*var);
-}
-
-
-int parse_input(const char* filename, Diamond* diamond, double* x_guess, MeshConfig* config) {
-
-  int err;
-
-  char buffer[BUFFER_SIZE];
-  char* pBuffer;
-
-  char* val;
-  char* var;
-
-  char* guess_list;
-  int list_counter;
-
-  FILE* file;
-  file = fopen(filename, "r");
-
-  if (file == NULL) {
-    logError("Could not open the input file.", ERROR_COULD_NOT_OPEN_FILE);
-    return ERROR_COULD_NOT_OPEN_FILE;
-  }
-
-
-  while (fgets(buffer, BUFFER_SIZE, file) != NULL) {
-    pBuffer = buffer;
-    trim(&pBuffer, &err);
-    if (*pBuffer == '#' || *pBuffer == '\0') {
-      continue;
+    if (**str == '\0')
+    {
+        printf("WARNING: The input string is empty!\n");
     }
 
-    get_var_val(&pBuffer, &var, &val, &err);
+    char *end = *str + strlen(*str) - 1;
+    while (end > *str && isspace(*end))
+        end--;
 
-    // Diamond Geometry
-    if (strcmp(var, "leading_half_angle") == 0)
-      diamond->alpha = atof(val);
-    else if (strcmp(var, "trailing_half_angle") == 0)
-      diamond->beta = atof(val);
-    else if (strcmp(var, "length_of_diamond") == 0)
-      diamond->l = strtod(val, NULL);
-    else if (strcmp(var, "apex_radius_of_curvature") == 0)
-      diamond->r = strtod(val, NULL);
-    // Initial Guess
-    else if (strcmp(var, "initial_guess") == 0) {
-      guess_list = strtok(val, "[,]");
-      list_counter = 0;
-      while (guess_list != NULL) {
-        x_guess[list_counter] = atof(guess_list) / 100.0 * diamond->l;
-        guess_list = strtok(NULL, "[,]");
-        list_counter++;
-      }
+    *(end + 1) = '\0';
+}
+
+void format_variable_name(char *str)
+{
+    int len = strlen(str);
+    for (int i = 0; i < len; i++)
+    {
+        str[i] = tolower(str[i]);
+        if (isspace(str[i]))
+        {
+            str[i] = '_';
+        }
     }
-    // Mesh configuration
-    else if (strcmp(var, "width_upstream_approach_region") == 0)
-      config->sUp = strtod(val, NULL);
-    else if (strcmp(var, "width_downstream_wake_region") == 0)
-      config->sDown = strtod(val, NULL);
-    else if (strcmp(var, "width_diamond_leading_edge_cluster") == 0)
-      config->sBlkUp = strtod(val, NULL);
-    else if (strcmp(var, "width_diamond_trailing_edge_cluster") == 0)
-      config->sBlkDown = strtod(val, NULL);
-    else if (strcmp(var, "width_upstream_portion_apex_arc_cluster") == 0)
-      config->sArcUp = strtod(val, NULL);
-    else if (strcmp(var, "width_downstream_portion_apex_arc_cluster") == 0)
-      config->sArcDown = strtod(val, NULL);
-    else if (strcmp(var, "tunnel_half_height") == 0)
-      config->tHeight = strtod(val, NULL);
-  }
+}
 
-  fclose(file);
-  return 0;
+bool is_variable(const char *var, const char *name)
+{
+    return strcmp(var, name) == 0;
+}
+
+int update_variable(const char *name, const double *value, VariableMapping *mapping, size_t n_mapping)
+{
+    for (size_t i = 0; i < n_mapping; ++i)
+    {
+        if (is_variable(name, mapping[i].name))
+        {
+            *(mapping[i].ptr_to_value) = *value;
+            return SUCCESS;
+        }
+    }
+    log_error("Variable not found!", ERROR_VARIABLE_NOT_FOUND);
+    return ERROR_VARIABLE_NOT_FOUND;
+}
+
+int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, MeshConfig *mesh_config)
+{
+    int status;
+
+    VariableMapping mapping[] = {{"leading_half_angle", &diamond->alpha},
+                                 {"trailing_half_angle", &diamond->beta},
+                                 {"length_of_diamond", &diamond->l},
+                                 {"apex_radius_of_curvature", &diamond->r},
+                                 {"width_upstream_approach_region", &mesh_config->sUp},
+                                 {"width_downstream_wake_region", &mesh_config->sDown},
+                                 {"width_diamond_leading_edge_cluster", &mesh_config->sBlkUp},
+                                 {"width_diamond_trailing_edge_cluster", &mesh_config->sBlkDown},
+                                 {"width_upstream_portion_apex_arc_cluster", &mesh_config->sArcUp},
+                                 {"width_downstream_portion_apex_arc_cluster", &mesh_config->sArcDown},
+                                 {"tunnel_half_height", &mesh_config->tHeight}};
+
+    char line_buffer[PARSER_LINE_BUFFER_SIZE];
+    char name_buffer[PARSER_VARIABLE_NAME_BUFFER_SIZE];
+    char *name;
+    double value;
+
+    FILE *file = fopen(file_name, "r");
+    if (file == NULL)
+    {
+        log_error("Could not open the input file.", ERROR_COULD_NOT_OPEN_FILE);
+        return ERROR_COULD_NOT_OPEN_FILE;
+    }
+
+    while (fgets(line_buffer, PARSER_LINE_BUFFER_SIZE, file) != NULL && !feof(file))
+    {
+        if (sscanf(line_buffer, " %[^(] (%*[^)]) = %lf ", name_buffer, &value) == 2)
+        {
+            name = name_buffer;
+            trim(&name);
+            format_variable_name(name);
+            status = update_variable(name, &value, mapping, sizeof(mapping) / sizeof(mapping[0]));
+            if (status != 0)
+            {
+                return status;
+            }
+        }
+        else if (sscanf(line_buffer, " %[^(] (%*[^)]) = [ %lf , %lf , %lf , %lf ]", name_buffer, &x_guess[0], &x_guess[1],
+                        &x_guess[2], &x_guess[3]) == 5)
+        {
+            for (size_t i = 0; i < 4; ++i)
+            {
+                x_guess[i] = x_guess[i] / 100.0 * diamond->l;
+            }
+        }
+    }
+
+    fclose(file);
+    return 0;
 }

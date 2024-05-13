@@ -8,8 +8,10 @@
 #include <math.h>
 
 #include "diamond.h"
+#include "error.h"
 #include "mesh.h"
-#define LINE_BUFFER_SIZE 1024
+
+#define CONVERTER_LINE_BUFFER_SIZE 1024
 
 void readMeshStructure(const char *fileName, int *meshStructure,
                        int n_meshStructure) {
@@ -29,71 +31,55 @@ void readMeshStructure(const char *fileName, int *meshStructure,
   fclose(file);
 }
 
-void print_title(void) {
-  const char *title =
-      "\n"
-      "READING GMSH\n"
-      "------------\n"
-      "\n";
-  printf("%s", title);
-}
-
-int readGmsh(const char *fileName, Point **points, int *numPoints,
-             Curve **curves, int *numCurves, Surface **surfaces,
-             int *numSurfaces, Node **nodes, int *numEntityBlocks,
-             Element **elements, int *numEntityBlocksElem, int *numNodes) {
-  int minNodeTag, maxNodeTag;
+int read_gmsh(const char *file_name, Point **points, size_t *n_points,
+              Curve **curves, size_t *n_curves, Surface **surfaces,
+              size_t *n_surfaces, Node **nodes, size_t *n_entity_blocks,
+              Element **elements, size_t *n_entity_blocks_element, size_t *n_nodes) {
+  size_t minNodeTag, maxNodeTag;
   int numElements, minElementTag, maxElementTag;
-  FILE *file;
-  char line[LINE_BUFFER_SIZE];
-  char startCategory[50];
-  char endCategory[50];
+  char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
+  char start_category[50];
+  char end_category[50];
 
-  print_title();
-
-  printf("Opening file... ");
-  file = fopen(fileName, "r");
-
+  FILE *file = fopen(file_name, "r");
   if (file == NULL) {
-    fprintf(stderr, "ERROR: Gmsh file could not open!\n");
-    return 1;
-  } else {
-    printf("Successful!\n");
+    log_error("GMSH file could not be opened!", ERROR_COULD_NOT_OPEN_FILE);
+    return ERROR_COULD_NOT_OPEN_FILE;
   }
 
-  while ((fgets(line, LINE_BUFFER_SIZE, file) != NULL) || (!feof(file))) {
-    while (sscanf(line, " $%s \n", startCategory) != 1) {
-      fgets(line, LINE_BUFFER_SIZE, file);
+  printf("Reading %s ...\n", file_name);
+  while (fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file) != NULL ||
+         !feof(file)) {
+    while (sscanf(line_buffer, " $%s \n", start_category) != 1) {
+      fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
     }
 
-    if (strcmp(startCategory, "Entities") == 0) {
+    if (strcmp(start_category, "Entities") == 0) {
       printf("Reading ENTITIES... ");
 
-      // first line
-      fgets(line, LINE_BUFFER_SIZE, file);
-      sscanf(line, " %d %d %d 0 \n", numPoints, numCurves, numSurfaces);
-      *points = (Point *)malloc((*numPoints) * sizeof(Point));
-      *curves = (Curve *)malloc((*numCurves) * sizeof(Curve));
-      *surfaces = (Surface *)malloc((*numSurfaces) * sizeof(Surface));
+      // First line
+      fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+      sscanf(line_buffer, " %zu %zu %zu 0 \n", n_points, n_curves, n_surfaces);
 
+      *points = (Point *)malloc((*n_points) * sizeof(Point));
+      *curves = (Curve *)malloc((*n_curves) * sizeof(Curve));
+      *surfaces = (Surface *)malloc((*n_surfaces) * sizeof(Surface));
       if (*points == NULL || *curves == NULL || *surfaces == NULL) {
-        fprintf(stderr,
-                "ERROR: Failed to allocate memory for Points, Curves, or "
-                "Surfaces!\n");
-        return 1;
+        log_error("Failed to allocate memory for Points, Curves, or Surfaces!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
       }
 
-      // points
-      for (int i = 0; i < *numPoints; ++i) {
-        fgets(line, LINE_BUFFER_SIZE, file);
-        sscanf(line, " %d %lf %lf %lf \n", &(*points)[i].tag, &(*points)[i].x,
+      // Points
+      for (int i = 0; i < *n_points; ++i) {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf \n", &(*points)[i].tag, &(*points)[i].x,
                &(*points)[i].y, &(*points)[i].z);
       }
 
-      // curves
-      for (int i = 0; i < *numCurves; ++i) {
-        fgets(line, LINE_BUFFER_SIZE, file);
-        sscanf(line, " %d %lf %lf %lf %lf %lf %lf 0 2 %d %d \n",
+      // Curves
+      for (int i = 0; i < *n_curves; ++i) {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 2 %d %d \n",
                &(*curves)[i].tag, &(*curves)[i].minX, &(*curves)[i].minY,
                &(*curves)[i].minZ, &(*curves)[i].maxX, &(*curves)[i].maxY,
                &(*curves)[i].maxZ, &(*curves)[i].tagsBoundingPoints[0],
@@ -101,9 +87,9 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
       }
 
       // surfaces
-      for (int i = 0; i < *numSurfaces; ++i) {
-        fgets(line, LINE_BUFFER_SIZE, file);
-        sscanf(line, " %d %lf %lf %lf %lf %lf %lf 0 4 %d %d %d %d \n",
+      for (int i = 0; i < *n_surfaces; ++i) {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 4 %d %d %d %d \n",
                &(*surfaces)[i].tag, &(*surfaces)[i].minX, &(*surfaces)[i].minY,
                &(*surfaces)[i].minZ, &(*surfaces)[i].maxX, &(*surfaces)[i].maxY,
                &(*surfaces)[i].maxZ, &(*surfaces)[i].tagsBoundingCurves[0],
@@ -112,27 +98,27 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
                &(*surfaces)[i].tagsBoundingCurves[3]);
       }
 
-      while (sscanf(line, " $%s ", endCategory) != 1) {
-        fgets(line, LINE_BUFFER_SIZE, file);
+      while (sscanf(line_buffer, " $%s ", end_category) != 1) {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
       }
 
-      if (strcmp(endCategory, "EndEntities") == 0) {
+      if (strcmp(end_category, "EndEntities") == 0) {
         printf("Reading completed!\n");
       }
     }
 
-    else if (strcmp(startCategory, "Nodes") == 0) {
+    else if (strcmp(start_category, "Nodes") == 0) {
       printf("Reading NODES... ");
 
       // first line
-      fgets(line, LINE_BUFFER_SIZE, file);
-      sscanf(line, " %d %d %d %d ", numEntityBlocks, numNodes, &minNodeTag,
+      fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+      sscanf(line_buffer, " %zu %zu %zu %zu ", n_entity_blocks, n_nodes, &minNodeTag,
              &maxNodeTag);
-      *nodes = (Node *)malloc((*numEntityBlocks) * sizeof(Node));
 
+      *nodes = (Node *)malloc((*n_entity_blocks) * sizeof(Node));
       if ((*nodes) == NULL) {
-        fprintf(stderr, "ERROR: Failed to allocate memory for Nodes!\n");
-        return 1;
+        log_error("Failed to allocate memory for Nodes!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
       }
 
       // entity blocks
@@ -169,14 +155,14 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
         }
       }
 
-      while (sscanf(line, " $%s ", endCategory) != 1) {
+      while (sscanf(line, " $%s ", end_category) != 1) {
         fgets(line, LINE_BUFFER_SIZE, file);
       }
 
-      if (strcmp(endCategory, "EndNodes") == 0) {
+      if (strcmp(end_category, "EndNodes") == 0) {
         printf("Reading completed!\n");
       }
-    } else if (strcmp(startCategory, "Elements") == 0) {
+    } else if (strcmp(start_category, "Elements") == 0) {
       printf("Reading ELEMENTS... ");
 
       // first line
@@ -256,11 +242,11 @@ int readGmsh(const char *fileName, Point **points, int *numPoints,
           }
         }
       }
-      while (sscanf(line, " $%s ", endCategory) != 1) {
+      while (sscanf(line, " $%s ", end_category) != 1) {
         fgets(line, LINE_BUFFER_SIZE, file);
       }
 
-      if (strcmp(endCategory, "EndElements") == 0) {
+      if (strcmp(end_category, "EndElements") == 0) {
         printf("Reading completed!\n");
       }
     }
@@ -506,13 +492,13 @@ int writeFluent(const char *outputFile, const Node *nodes,
   int bndPts[2] = {3, 11};
   int n_bndPts = 2;
   int bndBlocks[2] = {0, 0};
-  for (int i= 0; i < n_bndPts; ++i) {
+  for (int i = 0; i < n_bndPts; ++i) {
     while (nodes[bndBlocks[i]].entityDim != 0 ||
            nodes[bndBlocks[i]].entityTag != bndPts[i]) {
       bndBlocks[i]++;
     }
   }
- 
+
   int idx_up = 0;
   int idx_down = 0;
   for (int i = 0; i < dimX; ++i) {
@@ -523,8 +509,8 @@ int writeFluent(const char *outputFile, const Node *nodes,
     }
   }
 
-  int numFluentFacesUp = idx_up-1;
-  int numFluentFacesDown = idx_down-1;
+  int numFluentFacesUp = idx_up - 1;
+  int numFluentFacesDown = idx_down - 1;
   int numFluentFacesDiamond = dimX - idx_up - idx_down + 1;
 
   int numFluentFacesInterior = numFluentFaces - 2 * numFluentFacesIO -
@@ -566,7 +552,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
     row = floor(i / dimX);
     col = i % dimX;
 
-    //vertical
+    // vertical
     if (col > 0 && col < dimX - 1 && row < dimY - 1) {
       count++;
       n1 = i + 1;
@@ -576,7 +562,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
 
-    //horizontal
+    // horizontal
     if (row > 0 && row < dimY - 1 && col < dimX - 1) {
       count++;
       n1 = i + 2;
@@ -593,7 +579,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "\n");
 
   // inlet -- CHECKED!
-  count=0;
+  count = 0;
   fprintf(file, "(13 (4 %x %x 4 2)(\n", numFluentFacesInterior + 1,
           numFluentFacesInterior + numFluentFacesIO);
   for (int i = 0; i < numFluentNodes; ++i) {
@@ -619,7 +605,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "(13 (5 %x %x 5 2)(\n",
           numFluentFacesInterior + numFluentFacesIO + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO);
-  count=0;
+  count = 0;
   for (int i = 0; i < numFluentNodes; ++i) {
     row = floor(i / dimX);
     col = i % dimX;
@@ -639,7 +625,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "\n");
 
   // symmetry up -- CHECKED!
-  count=0;
+  count = 0;
   fprintf(file, "(13 (6 %x %x 7 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp);
@@ -663,7 +649,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "\n");
 
   // diamond -- CHECKED!
-  count=0;
+  count = 0;
   fprintf(file, "(13 (7 %x %x 3 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp + 1,
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
@@ -689,7 +675,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "\n");
 
   // symmetry down -- CHECKED!
-  count=0;
+  count = 0;
   fprintf(file, "(13 (8 %x %x 7 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
               numFluentFacesDiamond + 1,
@@ -716,7 +702,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   fprintf(file, "\n");
 
   // top wall -- CHECKED!
-  count=0;
+  count = 0;
   fprintf(file, "(13 (9 %x %x 3 2)(\n",
           numFluentFacesInterior + 2 * numFluentFacesIO + numFluentFacesUp +
               numFluentFacesDiamond + numFluentFacesDown + 1,
@@ -726,11 +712,11 @@ int writeFluent(const char *outputFile, const Node *nodes,
     row = floor(i / dimX);
     col = i % dimX;
 
-    if (row == dimY-1  && col < dimX - 1) {
+    if (row == dimY - 1 && col < dimX - 1) {
       count++;
       n1 = i + 2;
       n2 = i + 1;
-      c1 = (floor((i + 1) / dimX) - 1) * (dimX - 1) + (i+1) % dimX;
+      c1 = (floor((i + 1) / dimX) - 1) * (dimX - 1) + (i + 1) % dimX;
       c2 = 0;
       fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
     }
