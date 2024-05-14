@@ -2,3 +2,4 @@ build
 .cache
 *.swp
 .DS_Store
+.clang-format

@@ -13,9 +13,9 @@
 
 #define CONVERTER_LINE_BUFFER_SIZE 1024
 
-void readMeshStructure(const char *fileName, int *meshStructure,
+void readMeshStructure(const char* fileName, int* meshStructure,
                        int n_meshStructure) {
-  FILE *file;
+  FILE* file;
 
   file = fopen(fileName, "r");
 
@@ -31,19 +31,21 @@ void readMeshStructure(const char *fileName, int *meshStructure,
   fclose(file);
 }
 
-int read_gmsh(const char *file_name, Point **points, size_t *n_points,
-              Curve **curves, size_t *n_curves, Surface **surfaces,
-              size_t *n_surfaces, Node **nodes, size_t *n_entity_blocks,
-              Element **elements, size_t *n_entity_blocks_element, size_t *n_nodes) {
+int read_gmsh(const char* file_name, Point** points, size_t* n_points,
+              Curve** curves, size_t* n_curves, Surface** surfaces,
+              size_t* n_surfaces, Node** nodes, size_t* n_entity_blocks,
+              Element** elements, size_t* n_entity_blocks_element,
+              size_t* n_nodes) {
   size_t minNodeTag, maxNodeTag;
   int numElements, minElementTag, maxElementTag;
   char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
   char start_category[50];
   char end_category[50];
 
-  FILE *file = fopen(file_name, "r");
+  FILE* file = fopen(file_name, "r");
   if (file == NULL) {
-    log_error("GMSH file could not be opened!", ERROR_COULD_NOT_OPEN_FILE);
+    log_error("The gmsh mesh file could not be opened!",
+              ERROR_COULD_NOT_OPEN_FILE);
     return ERROR_COULD_NOT_OPEN_FILE;
   }
 
@@ -61,19 +63,20 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
       fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
       sscanf(line_buffer, " %zu %zu %zu 0 \n", n_points, n_curves, n_surfaces);
 
-      *points = (Point *)malloc((*n_points) * sizeof(Point));
-      *curves = (Curve *)malloc((*n_curves) * sizeof(Curve));
-      *surfaces = (Surface *)malloc((*n_surfaces) * sizeof(Surface));
+      *points = (Point*)malloc(*n_points * sizeof(Point));
+      *curves = (Curve*)malloc(*n_curves * sizeof(Curve));
+      *surfaces = (Surface*)malloc(*n_surfaces * sizeof(Surface));
       if (*points == NULL || *curves == NULL || *surfaces == NULL) {
-        log_error("Failed to allocate memory for Points, Curves, or Surfaces!", ERROR_NULL_POINTER);
+        log_error("Failed to allocate memory for Points, Curves, or Surfaces!",
+                  ERROR_NULL_POINTER);
         return ERROR_NULL_POINTER;
       }
 
       // Points
       for (int i = 0; i < *n_points; ++i) {
         fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-        sscanf(line_buffer, " %d %lf %lf %lf \n", &(*points)[i].tag, &(*points)[i].x,
-               &(*points)[i].y, &(*points)[i].z);
+        sscanf(line_buffer, " %d %lf %lf %lf \n", &(*points)[i].tag,
+               &(*points)[i].x, &(*points)[i].y, &(*points)[i].z);
       }
 
       // Curves
@@ -112,28 +115,28 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
 
       // first line
       fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-      sscanf(line_buffer, " %zu %zu %zu %zu ", n_entity_blocks, n_nodes, &minNodeTag,
-             &maxNodeTag);
+      sscanf(line_buffer, " %zu %zu %zu %zu ", n_entity_blocks, n_nodes,
+             &minNodeTag, &maxNodeTag);
 
-      *nodes = (Node *)malloc((*n_entity_blocks) * sizeof(Node));
+      *nodes = (Node*)malloc((*n_entity_blocks) * sizeof(Node));
       if ((*nodes) == NULL) {
         log_error("Failed to allocate memory for Nodes!", ERROR_NULL_POINTER);
         return ERROR_NULL_POINTER;
       }
 
       // entity blocks
-      for (int i = 0; i < *numEntityBlocks; ++i) {
-        fgets(line, LINE_BUFFER_SIZE, file);
-        sscanf(line, " %d %d 0 %d ", &(*nodes)[i].entityDim,
+      for (size_t i = 0; i < *n_entity_blocks; ++i) {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %d 0 %zu ", &(*nodes)[i].entityDim,
                &(*nodes)[i].entityTag, &(*nodes)[i].numNodesInBlock);
         (*nodes)[i].nodeTags =
-            (int *)malloc((*nodes)[i].numNodesInBlock * sizeof(int));
+            (int*)malloc((*nodes)[i].numNodesInBlock * sizeof(int));
         (*nodes)[i].x =
-            (double *)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
+            (double*)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
         (*nodes)[i].y =
-            (double *)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
+            (double*)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
         (*nodes)[i].z =
-            (double *)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
+            (double*)malloc((*nodes)[i].numNodesInBlock * sizeof(double));
 
         if ((*nodes)[i].nodeTags == NULL || (*nodes)[i].x == NULL ||
             (*nodes)[i].y == NULL || (*nodes)[i].z == NULL) {
@@ -169,7 +172,7 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
       fgets(line, LINE_BUFFER_SIZE, file);
       sscanf(line, "%d %d %d %d", numEntityBlocksElem, &numElements,
              &minElementTag, &maxElementTag);
-      *elements = (Element *)malloc(*numEntityBlocksElem * sizeof(Element));
+      *elements = (Element*)malloc(*numEntityBlocksElem * sizeof(Element));
 
       if ((*elements) == NULL) {
         fprintf(stderr, "ERROR: Failed to allocate memory for Elements!\n");
@@ -183,7 +186,7 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
                &(*elements)[i].entityTag, &(*elements)[i].elementType,
                &(*elements)[i].numElementsInBlock);
         (*elements)[i].elementTags =
-            (int *)malloc((*elements)[i].numElementsInBlock * sizeof(int));
+            (int*)malloc((*elements)[i].numElementsInBlock * sizeof(int));
 
         if ((*elements)[i].elementTags == NULL) {
           fprintf(stderr,
@@ -193,7 +196,7 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
 
         if ((*elements)[i].elementType == 15) {
           (*elements)[i].nodeTags =
-              (int *)malloc((*elements)[i].numElementsInBlock * sizeof(int));
+              (int*)malloc((*elements)[i].numElementsInBlock * sizeof(int));
 
           if ((*elements)[i].nodeTags == NULL) {
             fprintf(stderr,
@@ -207,8 +210,8 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
                    &(*elements)[i].nodeTags[j]);
           }
         } else if ((*elements)[i].elementType == 1) {
-          (*elements)[i].nodeTags = (int *)malloc(
-              2 * (*elements)[i].numElementsInBlock * sizeof(int));
+          (*elements)[i].nodeTags =
+              (int*)malloc(2 * (*elements)[i].numElementsInBlock * sizeof(int));
 
           if ((*elements)[i].nodeTags == NULL) {
             fprintf(stderr,
@@ -223,8 +226,8 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
                    &(*elements)[i].nodeTags[j * 2 + 1]);
           }
         } else if ((*elements)[i].elementType == 3) {
-          (*elements)[i].nodeTags = (int *)malloc(
-              4 * (*elements)[i].numElementsInBlock * sizeof(int));
+          (*elements)[i].nodeTags =
+              (int*)malloc(4 * (*elements)[i].numElementsInBlock * sizeof(int));
 
           if ((*elements)[i].nodeTags == NULL) {
             fprintf(stderr,
@@ -263,16 +266,16 @@ int read_gmsh(const char *file_name, Point **points, size_t *n_points,
   return 0;
 }
 
-int ySorter(const void *point1, const void *point2) {
-  Point2D *pointA = (Point2D *)point1;
-  Point2D *pointB = (Point2D *)point2;
+int ySorter(const void* point1, const void* point2) {
+  Point2D* pointA = (Point2D*)point1;
+  Point2D* pointB = (Point2D*)point2;
   return (pointA->y > pointB->y) - (pointA->y < pointB->y);
 }
 
-void transpose(FluentNode *arr, int numRows, int numCols) {
-  FluentNode **transposed = (int **)malloc(numCols * sizeof(FluentNode *));
+void transpose(FluentNode* arr, int numRows, int numCols) {
+  FluentNode** transposed = (int**)malloc(numCols * sizeof(FluentNode*));
   for (int i = 0; i < numCols; i++) {
-    transposed[i] = (FluentNode *)malloc(numRows * sizeof(FluentNode));
+    transposed[i] = (FluentNode*)malloc(numRows * sizeof(FluentNode));
   }
 
   // Transpose the array
@@ -295,7 +298,7 @@ void transpose(FluentNode *arr, int numRows, int numCols) {
   free(transposed);
 }
 
-int isBoundary(const Node *nodes, int block) {
+int isBoundary(const Node* nodes, int block) {
   int boundaries[] = {0, 13, 1, 54, 0, 58, 1, 1007, 0, 135, 1, 133, 0, 107};
   int n_boundaries = 14;
 
@@ -307,7 +310,7 @@ int isBoundary(const Node *nodes, int block) {
   return 0;
 }
 
-int isReversed(const Node *nodes, int block) {
+int isReversed(const Node* nodes, int block) {
   int revBlocks[] = {1, 108, 2, 110, 1, 109, 2, 114, 1, 113,
                      2, 118, 1, 117, 2, 122, 1, 121, 2, 126,
                      1, 125, 2, 130, 1, 129, 2, 134, 1, 133};
@@ -321,13 +324,12 @@ int isReversed(const Node *nodes, int block) {
   return 0;
 }
 
-int writeFluent(const char *outputFile, const Node *nodes,
+int writeFluent(const char* outputFile, const Node* nodes,
                 const int numEntityBlocks, const int numNodes,
-                const Diamond *diamond, const MeshConfig *meshConfig) {
-  FILE *file;
+                const Diamond* diamond, const MeshConfig* meshConfig) {
+  FILE* file;
   int numFluentNodes = numNodes - 1;  // discard arc center
-  FluentNode *fNodes =
-      (FluentNode *)malloc(numFluentNodes * sizeof(FluentNode));
+  FluentNode* fNodes = (FluentNode*)malloc(numFluentNodes * sizeof(FluentNode));
   if (fNodes == NULL) {
     fprintf(stderr, "Error: Memory allocation failed\n");
     free(fNodes);
@@ -337,7 +339,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   printf("\nWRITING FLUENT\n--------------\n");
   printf("\n# Manipulate Nodes\n##################\n");
 
-  int *meshStructure = (int *)calloc(2 * (numEntityBlocks - 1), sizeof(int));
+  int* meshStructure = (int*)calloc(2 * (numEntityBlocks - 1), sizeof(int));
 
   readMeshStructure("../data/structure.txt", meshStructure,
                     2 * (numEntityBlocks - 1));
@@ -386,8 +388,8 @@ int writeFluent(const char *outputFile, const Node *nodes,
     }
 
     // reorder reversed blocks
-    Point2D *shuffler =
-        (Point2D *)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
+    Point2D* shuffler =
+        (Point2D*)malloc(nodes[block].numNodesInBlock * sizeof(Point2D));
     for (int m = 0; m < nodes[block].numNodesInBlock; ++m) {
       shuffler[m].x = nodes[block].x[m];
       shuffler[m].y = nodes[block].y[m];
@@ -474,7 +476,7 @@ int writeFluent(const char *outputFile, const Node *nodes,
   }
 
   printf("WRITING plot_data.txt... ");
-  FILE *tmpFile;
+  FILE* tmpFile;
   tmpFile = fopen("plot_data.txt", "w");
   for (int i = 0; i < numFluentNodes; ++i) {
     fprintf(tmpFile, "%.12lf %.12lf\n", fNodes[i].x, fNodes[i].y);
