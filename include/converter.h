@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
   int entity_dim;
   int entity_tag;
-  size_t num_nodes_in_block;
+  size_t n_nodes_in_block;
   size_t* node_tags;
   double* x;
   double* y;
@@ -40,7 +40,7 @@ typedef struct {
   int entity_dim;
   int entity_tag;
   int element_type;
-  size_t num_elements_in_block;
+  size_t n_elements_in_block;
   size_t* element_tags;
   size_t* node_tags;
 } Element;
@@ -58,19 +58,19 @@ typedef struct {
 int read_gmsh(const char* file_name, Point** points, size_t* n_points,
               Curve** curves, size_t* n_curves, Surface** surfaces,
               size_t* n_surfaces, Node** nodes, size_t* n_entity_blocks,
-              Element** elements, size_t* n_entity_blocks_element,
+              Element** elements, size_t* n_entity_blocks_elements,
               size_t* n_nodes);
 
-int writeFluent(const char* outputFile, const Node* nodes,
-                const int numEntityBlocks, const int numNodes,
-                const Diamond* diamond, const MeshConfig* meshConfig);
+int write_fluent(const char* output_file, const Node* nodes,
+                const size_t n_entity_blocks, const size_t n_nodes,
+                const Diamond* diamond, const MeshConfig* mesh_config);
 
 int ySorter(const void* node1, const void* node2);
 
 void transpose(FluentNode* arr, int numCols, int numRows);
-void readMeshStructure(const char* fileName, int* meshStructure,
-                       int n_meshStructure);
+int read_mesh_structure(const char* file_name, int* mesh_structure,
+                       size_t n_mesh_structure);
 
-int isBoundary(const Node* nodes, int block);
-int isReversed(const Node* nodes, int block);
+int is_boundary(const Node* nodes, int block);
+int is_reversed(const Node* nodes, int block);
 #endif  // CONVERTER_H

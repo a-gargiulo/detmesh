@@ -11,7 +11,7 @@ typedef struct {
   double tHeight;
 } MeshConfig;
 
-int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig);
+int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* mesh_config);
 
 
 #endif // MESH_H
