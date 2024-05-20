@@ -30,8 +30,7 @@ int read_mesh_structure(const char* file_name, int* mesh_structure, size_t n_mes
 
 int read_gmsh(const char* file_name, Point** points, size_t* n_points, Curve** curves,
               size_t* n_curves, Surface** surfaces, size_t* n_surfaces, Node** nodes,
-              size_t* n_entity_blocks, Element** elements, size_t* n_entity_blocks_elements,
-              size_t* n_nodes) {
+              size_t* n_nodes, size_t* n_entity_blocks, Element** elements, size_t* n_entity_blocks_elements) {
   size_t min_node_tag, max_node_tag;
   size_t n_elements, min_element_tag, max_element_tag;
 
@@ -296,8 +295,7 @@ int is_reversed(const Node* nodes, int block) {
   return 0;
 }
 
-int write_fluent(const char* output_file, const Node* nodes, const size_t n_entity_blocks,
-                const size_t n_nodes, const Diamond* diamond, const MeshConfig* mesh_config) {
+int write_fluent(const char* output_file, const Node* nodes, const size_t n_nodes, const size_t n_entity_blocks, const Diamond* diamond, const MeshConfig* mesh_config) {
   int status;
 
   int dim_x, dim_y;

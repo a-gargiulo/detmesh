@@ -57,12 +57,11 @@ typedef struct {
 
 int read_gmsh(const char* file_name, Point** points, size_t* n_points,
               Curve** curves, size_t* n_curves, Surface** surfaces,
-              size_t* n_surfaces, Node** nodes, size_t* n_entity_blocks,
-              Element** elements, size_t* n_entity_blocks_elements,
-              size_t* n_nodes);
+              size_t* n_surfaces, Node** nodes, size_t* n_nodes, size_t* n_entity_blocks,
+              Element** elements, size_t* n_entity_blocks_elements);
 
-int write_fluent(const char* output_file, const Node* nodes,
-                const size_t n_entity_blocks, const size_t n_nodes,
+int write_fluent(const char* output_file, const Node* nodes, const size_t n_nodes,
+                const size_t n_entity_blocks,
                 const Diamond* diamond, const MeshConfig* mesh_config);
 
 int ySorter(const void* node1, const void* node2);
