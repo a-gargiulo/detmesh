@@ -1,5 +1,6 @@
 #include "detmesh.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -22,8 +23,9 @@ int run(int argc, char** argv)
     Surface* surfaces = NULL;
     Node* nodes = NULL;
     Element* elements = NULL;
-    size_t n_points, n_curves, n_surfaces, n_nodes;
-    size_t n_entity_blocks, n_entity_blocks_elements;
+    size_t n_points = 0, n_curves = 0, n_surfaces = 0;
+    size_t n_nodes = 0, n_entity_blocks = 0;
+    size_t n_entity_blocks_elements = 0;
 
     // PARSER
     status = parse_user_input(argv[argc - 1], &diamond, x_guess, &mesh_config);
@@ -59,7 +61,7 @@ int run(int argc, char** argv)
 
     // WRITE FLUENT MESH
     status =
-        write_fluent("diamond_fluent.msh", nodes, n_nodes, n_entity_blocks, &diamond, &mesh_config);
+        write_fluent("diamond_fluent.msh", nodes, &n_nodes, &n_entity_blocks, &diamond, &mesh_config);
     if (status != 0)
     {
         clean_resources(points, curves, surfaces, nodes, &n_entity_blocks, elements,
@@ -84,19 +86,25 @@ void clean_resources(Point* points, Curve* curves, Surface* surfaces, Node* node
 
     free(surfaces);
 
-    for (size_t i = 0; i < *n_entity_blocks; ++i)
+    if (*n_entity_blocks != 0)
     {
-        free(nodes[i].node_tags);
-        free(nodes[i].x);
-        free(nodes[i].y);
-        free(nodes[i].z);
+        for (size_t i = 0; i < *n_entity_blocks; ++i)
+        {
+            free(nodes[i].node_tags);
+            free(nodes[i].x);
+            free(nodes[i].y);
+            free(nodes[i].z);
+        }
     }
     free(nodes);
 
-    for (size_t i = 0; i < *n_entity_blocks_elements; ++i)
+    if (*n_entity_blocks_elements)
     {
-        free(elements[i].element_tags);
-        free(elements[i].node_tags);
+        for (size_t i = 0; i < *n_entity_blocks_elements; ++i)
+        {
+            free(elements[i].element_tags);
+            free(elements[i].node_tags);
+        }
     }
     free(elements);
 }
