@@ -36,46 +36,54 @@ int read_mesh_structure(const char* file_name, int** mesh_structure, size_t* n_m
 
         if (strcmp(category, "Structure") == 0)
         {
-            fscanf(file, " %zu ", n_mesh_structure);
+            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+            sscanf(line_buffer, " %zu ", n_mesh_structure);
+
             *mesh_structure = (int*)malloc(*n_mesh_structure * sizeof(int));
             if (*mesh_structure == NULL)
             {
                 log_error("Could not allocate memory for mesh structure!", ERROR_NULL_POINTER);
                 return ERROR_NULL_POINTER;
             }
+
+            printf("READING %zu VALUES\n", *n_mesh_structure);
             for (size_t i = 0; i < *n_mesh_structure; i = i + 2)
             {
-                fscanf(file, " %d %d ", &(*mesh_structure[i]), &(*mesh_structure[i + 1]));
+                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+                printf("%s", line_buffer);
+                // sscanf(line_buffer, " %d %d ", &((*mesh_structure)[i]), &((*mesh_structure)[i + 1]));
+                // printf(" %d %d\n", *mesh_structure[i], *mesh_structure[i + 1]);
             }
+            printf("DONE!\n");
         }
-        else if (strcmp(category, "Boundaries") == 0)
-        {
-            fscanf(file, " %zu ", n_boundaries);
-            *boundaries = (int*)malloc(*n_boundaries * sizeof(int));
-            if (*boundaries == NULL)
-            {
-                log_error("Could not allocate memory for boundaries!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
-            }
-            for (size_t i = 0; i < *n_boundaries; i = i + 2)
-            {
-                fscanf(file, " %d %d ", &(*boundaries[i]), &(*boundaries[i + 1]));
-            }
-        }
-        else if (strcmp(category, "Reversed") == 0)
-        {
-            fscanf(file, " %zu ", n_rev_blocks);
-            *rev_blocks = (int*)malloc(*n_rev_blocks * sizeof(int));
-            if (*rev_blocks == NULL)
-            {
-                log_error("Could not allocate memory for reversed blocks!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
-            }
-            for (size_t i = 0; i < *n_rev_blocks; i = i + 2)
-            {
-                fscanf(file, " %d %d ", &(*rev_blocks[i]), &(*rev_blocks[i + 1]));
-            }
-        }
+        // else if (strcmp(category, "Boundaries") == 0)
+        // {
+        //     fscanf(file, " %zu ", n_boundaries);
+        //     *boundaries = (int*)malloc(*n_boundaries * sizeof(int));
+        //     if (*boundaries == NULL)
+        //     {
+        //         log_error("Could not allocate memory for boundaries!", ERROR_NULL_POINTER);
+        //         return ERROR_NULL_POINTER;
+        //     }
+        //     for (size_t i = 0; i < *n_boundaries; i = i + 2)
+        //     {
+        //         fscanf(file, " %d %d ", &(*boundaries[i]), &(*boundaries[i + 1]));
+        //     }
+        // }
+        // else if (strcmp(category, "Reversed") == 0)
+        // {
+        //     fscanf(file, " %zu ", n_rev_blocks);
+        //     *rev_blocks = (int*)malloc(*n_rev_blocks * sizeof(int));
+        //     if (*rev_blocks == NULL)
+        //     {
+        //         log_error("Could not allocate memory for reversed blocks!", ERROR_NULL_POINTER);
+        //         return ERROR_NULL_POINTER;
+        //     }
+        //     for (size_t i = 0; i < *n_rev_blocks; i = i + 2)
+        //     {
+        //         fscanf(file, " %d %d ", &(*rev_blocks[i]), &(*rev_blocks[i + 1]));
+        //     }
+        // }
     }
 
     fclose(file);
