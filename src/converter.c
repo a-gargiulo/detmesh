@@ -12,13 +12,47 @@
 
 #define CONVERTER_LINE_BUFFER_SIZE 1024
 #define CONVERTER_CATEGORY_BUFFER_SIZE 50
+#define CONVERTER_NUM_STRUCTURE_CATEOGRIES 3
 
-int read_mesh_structure(const char* file_name, int** mesh_structure, size_t* n_mesh_structure,
-                        int** boundaries, size_t* n_boundaries, int** rev_blocks,
-                        size_t* n_rev_blocks)
+int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_size, int** memory, size_t* n_memory)
 {
+
+    fgets(line_buffer, line_buffer_size, file);
+    sscanf(line_buffer, " %zu \n", n_memory);
+
+    *memory = (int*)malloc(*n_memory * sizeof(int));
+    if (*memory == NULL)
+    {
+        log_error("Could not allocate memory structure file elements!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
+    }
+
+    for (size_t i = 0; i < *n_memory; i = i + 2)
+    {
+        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %d \n", &((*memory)[i]),
+               &((*memory)[i + 1]));
+    }
+
+    return 0;
+
+}
+
+int read_mesh_structure_file(const char* file_name, int** order_entities, size_t* n_order_entities,
+                        int** outlet_entities, size_t* n_outlet_entities, int** reversed_entities,
+                        size_t* n_reversed_entities)
+{
+    int status;
     char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
     char category[CONVERTER_CATEGORY_BUFFER_SIZE];
+
+    StructureFileElement structure_file_elements[CONVERTER_NUM_STRUCTURE_CATEGORIES];
+
+
+    size_t n_categories = 3;
+    typedef struct {} catego
+    char categories[CONVERTER_NUM_STRUCTURE_CATEOGRIES][CONVERTER_CATEGORY_BUFFER_SIZE] = {"OrderEntities", "OutletEntities", "ReversedEntities"};
+    
 
     FILE* file = fopen(file_name, "r");
     if (file == NULL)
@@ -34,55 +68,39 @@ int read_mesh_structure(const char* file_name, int** mesh_structure, size_t* n_m
             fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
         }
 
-        if (strcmp(category, "Structure") == 0)
+        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEOGRIES; ++i)
         {
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            sscanf(line_buffer, " %zu ", n_mesh_structure);
-
-            *mesh_structure = (int*)malloc(*n_mesh_structure * sizeof(int));
-            if (*mesh_structure == NULL)
+            if (strcmp(category, categories[i]) == 0)
             {
-                log_error("Could not allocate memory for mesh structure!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
+                printf("%s\n", categories[i])
+                status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, order_entities, n_order_entities);
+                if (status != 0) {
+                    return status;
+                }
             }
-
-            printf("READING %zu VALUES\n", *n_mesh_structure);
-            for (size_t i = 0; i < *n_mesh_structure; i = i + 2)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                printf("%s", line_buffer);
-                // sscanf(line_buffer, " %d %d ", &((*mesh_structure)[i]), &((*mesh_structure)[i + 1]));
-                // printf(" %d %d\n", *mesh_structure[i], *mesh_structure[i + 1]);
-            }
-            printf("DONE!\n");
         }
-        // else if (strcmp(category, "Boundaries") == 0)
+
+        // if (strcmp(category, "OrderEntities") == 0)
         // {
-        //     fscanf(file, " %zu ", n_boundaries);
-        //     *boundaries = (int*)malloc(*n_boundaries * sizeof(int));
-        //     if (*boundaries == NULL)
-        //     {
-        //         log_error("Could not allocate memory for boundaries!", ERROR_NULL_POINTER);
-        //         return ERROR_NULL_POINTER;
-        //     }
-        //     for (size_t i = 0; i < *n_boundaries; i = i + 2)
-        //     {
-        //         fscanf(file, " %d %d ", &(*boundaries[i]), &(*boundaries[i + 1]));
+        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, order_entities, n_order_entities);
+        //     if (status != 0) {
+        //         return status;
         //     }
         // }
-        // else if (strcmp(category, "Reversed") == 0)
+        // else if (strcmp(category, "OutletEntities") == 0)
         // {
-        //     fscanf(file, " %zu ", n_rev_blocks);
-        //     *rev_blocks = (int*)malloc(*n_rev_blocks * sizeof(int));
-        //     if (*rev_blocks == NULL)
-        //     {
-        //         log_error("Could not allocate memory for reversed blocks!", ERROR_NULL_POINTER);
-        //         return ERROR_NULL_POINTER;
+        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, outlet_entities, n_outlet_entities);
+        //     if (status != 0) {
+        //         return status;
         //     }
-        //     for (size_t i = 0; i < *n_rev_blocks; i = i + 2)
-        //     {
-        //         fscanf(file, " %d %d ", &(*rev_blocks[i]), &(*rev_blocks[i + 1]));
+        // }
+        // else if (strcmp(category, "ReversedEntities") == 0)
+        // {
+        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, reversed_entities, n_reversed_entities);
+        //     if (status != 0) {
+        //         return status;
         //     }
+           
         // }
     }
 
@@ -352,23 +370,23 @@ int y_sorter(const void* point1, const void* point2)
     return (pointA->y > pointB->y) - (pointA->y < pointB->y);
 }
 
-int is_boundary(const Node* nodes, int block, const int* boundaries, const size_t* n_boundaries)
+int is_boundary(const Node* nodes, int block, const int* outlet_entities, const size_t* n_outlet_entities)
 {
-    for (size_t i = 0; i < *n_boundaries; i = i + 2)
+    for (size_t i = 0; i < *n_outlet_entities; i = i + 2)
     {
-        if (nodes[block].entity_dim == boundaries[i] &&
-            nodes[block].entity_tag == boundaries[i + 1])
+        if (nodes[block].entity_dim == outlet_entities[i] &&
+            nodes[block].entity_tag == outlet_entities[i + 1])
             return 1;
     }
     return 0;
 }
 
-int is_reversed(const Node* nodes, int block, const int* rev_blocks, const size_t* n_rev_blocks)
+int is_reversed(const Node* nodes, int block, const int* reversed_entities, const size_t* n_reversed_entities)
 {
-    for (size_t i = 0; i < *n_rev_blocks; i = i + 2)
+    for (size_t i = 0; i < *n_reversed_entities; i = i + 2)
     {
-        if (nodes[block].entity_dim == rev_blocks[i] &&
-            nodes[block].entity_tag == rev_blocks[i + 1])
+        if (nodes[block].entity_dim == reversed_entities[i] &&
+            nodes[block].entity_tag == reversed_entities[i + 1])
             return 1;
     }
     return 0;
@@ -395,7 +413,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     FILE* file_tmp;
 
     size_t n_fluent_nodes = *n_nodes - 1; // discard arc center
-    // size_t n_mesh_structure = 2 * (*n_entity_blocks - 1);
+    // size_t n_order_entities = 2 * (*n_entity_blocks - 1);
 
     printf("\nFLUENT MESH WRITER\n##################\n\n");
 
@@ -406,22 +424,23 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
         return ERROR_NULL_POINTER;
     }
 
-    size_t n_mesh_structure;
-    size_t n_rev_blocks;
-    size_t n_boundaries;
-    int* mesh_structure = NULL;
-    int* rev_blocks = NULL;
-    int* boundaries = NULL;
-    status = read_mesh_structure("../data/structure.txt", &mesh_structure, &n_mesh_structure,
-                                 &boundaries, &n_boundaries, &rev_blocks, &n_rev_blocks);
+    size_t n_order_entities;
+    size_t n_reversed_entities;
+    size_t n_outlet_entities;
+    int* order_entities = NULL;
+    int* reversed_entities = NULL;
+    int* outlet_entities = NULL;
+    status = read_mesh_structure_file("../data/structure.txt", &order_entities, &n_order_entities,
+                                 &outlet_entities, &n_outlet_entities, &reversed_entities, &n_reversed_entities);
     if (status != 0)
     {
-        free(mesh_structure);
-        free(rev_blocks);
-        free(boundaries);
+        free(order_entities);
+        free(reversed_entities);
+        free(outlet_entities);
         free(f_nodes);
         return status;
     }
+
 
     // Find mesh dimensions
     dim_y = 0;
@@ -448,9 +467,9 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("The y-dimension resulted to zero!", ERROR_DIVISION_BY_ZERO);
         free(f_nodes);
-        free(mesh_structure);
-        free(boundaries);
-        free(rev_blocks);
+        free(order_entities);
+        free(outlet_entities);
+        free(reversed_entities);
         return ERROR_DIVISION_BY_ZERO;
     }
     printf("Mesh Dimensions:\n");
@@ -464,13 +483,13 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         // Search block of nodes
         block = 0;
-        while (nodes[block].entity_dim != mesh_structure[i] ||
-               nodes[block].entity_tag != mesh_structure[i + 1])
+        while (nodes[block].entity_dim != order_entities[i] ||
+               nodes[block].entity_tag != order_entities[i + 1])
         {
             block++;
         }
 
-        if (is_reversed(nodes, block, rev_blocks, &n_rev_blocks))
+        if (is_reversed(nodes, block, reversed_entities, &n_reversed_entities))
         {
             // Reorder reversed blocks
             Point2D* shuffler = (Point2D*)malloc(nodes[block].n_nodes_in_block * sizeof(Point2D));
@@ -478,9 +497,9 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
             {
                 log_error("Failed to allocate memory for shuffler!", ERROR_NULL_POINTER);
                 free(f_nodes);
-                free(mesh_structure);
-                free(boundaries);
-                free(rev_blocks);
+                free(order_entities);
+                free(outlet_entities);
+                free(reversed_entities);
                 return ERROR_NULL_POINTER;
             }
             for (size_t m = 0; m < nodes[block].n_nodes_in_block; ++m)
@@ -572,7 +591,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
             }
         }
 
-        if (is_boundary(nodes, block, boundaries, &n_boundaries))
+        if (is_boundary(nodes, block, outlet_entities, &n_outlet_entities))
         {
             row_idx = 0;
             if (is_horizontal > 0)
@@ -595,9 +614,9 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("Coult not open plot_data.txt", ERROR_COULD_NOT_OPEN_FILE);
         free(f_nodes);
-        free(mesh_structure);
-        free(boundaries);
-        free(rev_blocks);
+        free(order_entities);
+        free(outlet_entities);
+        free(reversed_entities);
         return ERROR_COULD_NOT_OPEN_FILE;
     }
     for (size_t i = 0; i < n_fluent_nodes; ++i)
@@ -664,9 +683,9 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("Could not open the Fluent mesh file", ERROR_COULD_NOT_OPEN_FILE);
         free(f_nodes);
-        free(mesh_structure);
-        free(boundaries);
-        free(rev_blocks);
+        free(order_entities);
+        free(outlet_entities);
+        free(reversed_entities);
         return ERROR_COULD_NOT_OPEN_FILE;
     }
 
@@ -877,8 +896,8 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     printf("Cells: %d\n", n_fluent_cells);
     printf("-----------\n\n");
     free(f_nodes);
-    free(mesh_structure);
-    free(boundaries);
-    free(rev_blocks);
+    free(order_entities);
+    free(outlet_entities);
+    free(reversed_entities);
     return 0;
 }

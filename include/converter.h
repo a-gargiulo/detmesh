@@ -1,5 +1,7 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
+
+#include <stdio.h>
 #include <stddef.h>
 
 #include "diamond.h"
@@ -62,6 +64,14 @@ typedef struct
     double x, y;
 } Point2D;
 
+typedef struct
+{
+  const char* category;
+  int* memory;
+  size_t n_memory;
+
+} StructureFileElement;
+
 int read_gmsh(const char* file_name, Point** points, size_t* n_points, Curve** curves,
               size_t* n_curves, Surface** surfaces, size_t* n_surfaces, Node** nodes,
               size_t* n_nodes, size_t* n_entity_blocks, Element** elements,
@@ -73,10 +83,12 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
 
 int y_sorter(const void* node1, const void* node2);
 
-int read_mesh_structure(const char* file_name, int** mesh_structure, size_t* n_mesh_structure, int** boundaries, size_t* n_boundaries, int** rev_blocks, size_t* n_rev_blocks);
+int read_mesh_structure_file(const char* file_name, int** order_entities, size_t* n_order_entities, int** outlet_entities, size_t* n_outlet_entities, int** reversed_entities, size_t* n_reversed_entities);
 
-int is_boundary(const Node* nodes, int block, const int* boundaries, const size_t* n_boundaries);
+int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_size, int** memory, size_t* n_memory);
 
-int is_reversed(const Node* nodes, int block, const int* rev_blocks, const size_t* n_rev_blocks);
+int is_boundary(const Node* nodes, int block, const int* outlet_entities, const size_t* n_outlet_entities);
+
+int is_reversed(const Node* nodes, int block, const int* reversed_entities, const size_t* n_reversed_entities);
 
 #endif // CONVERTER_H
