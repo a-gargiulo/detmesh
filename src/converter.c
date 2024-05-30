@@ -12,7 +12,7 @@
 
 #define CONVERTER_LINE_BUFFER_SIZE 1024
 #define CONVERTER_CATEGORY_BUFFER_SIZE 50
-#define CONVERTER_NUM_STRUCTURE_CATEOGRIES 3
+#define CONVERTER_NUM_STRUCTURE_CATEGORIES 3
 
 int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_size, int** memory, size_t* n_memory)
 {
@@ -38,21 +38,11 @@ int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_siz
 
 }
 
-int read_mesh_structure_file(const char* file_name, int** order_entities, size_t* n_order_entities,
-                        int** outlet_entities, size_t* n_outlet_entities, int** reversed_entities,
-                        size_t* n_reversed_entities)
+int read_mesh_structure_file(const char* file_name, StructureFileElement* structure_file_elements)
 {
     int status;
     char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
     char category[CONVERTER_CATEGORY_BUFFER_SIZE];
-
-    StructureFileElement structure_file_elements[CONVERTER_NUM_STRUCTURE_CATEGORIES];
-
-
-    size_t n_categories = 3;
-    typedef struct {} catego
-    char categories[CONVERTER_NUM_STRUCTURE_CATEOGRIES][CONVERTER_CATEGORY_BUFFER_SIZE] = {"OrderEntities", "OutletEntities", "ReversedEntities"};
-    
 
     FILE* file = fopen(file_name, "r");
     if (file == NULL)
@@ -63,45 +53,24 @@ int read_mesh_structure_file(const char* file_name, int** order_entities, size_t
 
     while (fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file) != NULL || !feof(file))
     {
-        while (sscanf(line_buffer, " $%s \n", category) != 1)
+        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
         {
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-        }
-
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEOGRIES; ++i)
-        {
-            if (strcmp(category, categories[i]) == 0)
+            printf("ITERATION: %zu\n", i);
+            while (sscanf(line_buffer, " $%s \n", category) != 1)
             {
-                printf("%s\n", categories[i])
-                status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, order_entities, n_order_entities);
+                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
+            }
+
+            if (strcmp(category, structure_file_elements[i].category) == 0)
+            {
+                printf("%s\n", structure_file_elements[i].category);
+                status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, &(structure_file_elements[i].memory), &(structure_file_elements[i].n_memory));
                 if (status != 0) {
                     return status;
                 }
             }
         }
 
-        // if (strcmp(category, "OrderEntities") == 0)
-        // {
-        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, order_entities, n_order_entities);
-        //     if (status != 0) {
-        //         return status;
-        //     }
-        // }
-        // else if (strcmp(category, "OutletEntities") == 0)
-        // {
-        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, outlet_entities, n_outlet_entities);
-        //     if (status != 0) {
-        //         return status;
-        //     }
-        // }
-        // else if (strcmp(category, "ReversedEntities") == 0)
-        // {
-        //     status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE, reversed_entities, n_reversed_entities);
-        //     if (status != 0) {
-        //         return status;
-        //     }
-           
-        // }
     }
 
     fclose(file);
@@ -424,14 +393,22 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
         return ERROR_NULL_POINTER;
     }
 
-    size_t n_order_entities;
-    size_t n_reversed_entities;
-    size_t n_outlet_entities;
-    int* order_entities = NULL;
-    int* reversed_entities = NULL;
-    int* outlet_entities = NULL;
-    status = read_mesh_structure_file("../data/structure.txt", &order_entities, &n_order_entities,
-                                 &outlet_entities, &n_outlet_entities, &reversed_entities, &n_reversed_entities);
+    // size_t n_order_entities;
+    // size_t n_reversed_entities;
+    // size_t n_outlet_entities;
+    // int* order_entities = NULL;
+    // int* reversed_entities = NULL;
+    // int* outlet_entities = NULL;
+    char categories[CONVERTER_NUM_STRUCTURE_CATEGORIES][CONVERTER_CATEGORY_BUFFER_SIZE] = {"OrderEntities", "OutletEntities", "ReversedEntities"};
+    StructureFileElement structure_file_elements[CONVERTER_NUM_STRUCTURE_CATEGORIES];
+    // Initialize
+    for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+    {
+        structure_file_elements[i].category = categories[i];
+        structure_file_elements[i].memory = NULL;
+        structure_file_elements[i].n_memory = 0;
+    }
+    status = read_mesh_structure_file("../data/structure.txt", &structure_file_elements);
     if (status != 0)
     {
         free(order_entities);

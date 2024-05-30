@@ -83,7 +83,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
 
 int y_sorter(const void* node1, const void* node2);
 
-int read_mesh_structure_file(const char* file_name, int** order_entities, size_t* n_order_entities, int** outlet_entities, size_t* n_outlet_entities, int** reversed_entities, size_t* n_reversed_entities);
+int read_mesh_structure_file(const char* file_name, StructureFileElement* structure_file_elements);
 
 int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_size, int** memory, size_t* n_memory);
 
