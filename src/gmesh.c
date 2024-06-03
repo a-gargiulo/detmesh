@@ -10,7 +10,6 @@
 #include "diamond.h"
 #include "error.h"
 
-
 #define DEFAULT_CELL_SIZE 5e-3
 #define deg2rad(deg) ((deg) * M_PI / 180.0)
 
@@ -18,7 +17,7 @@
 #define GMESH_CATEGORY_BUFFER_SIZE 50
 #define GMESH_N_CATEGORIES 3 
 
-int mesh_diamond(int argc, char** argv, Diamond* diamond, GMeshConfig* gmesh_config)
+int generate_gmsh(int argc, char** argv, Diamond* diamond, GMeshConfig* gmesh_config)
 {
   double dAlpha = deg2rad(diamond->alpha);
   double dBeta = deg2rad(diamond->beta);
@@ -344,8 +343,6 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, GMeshConfig* gmesh_con
   // free(outDimTags);
 }
 
-
-
 int read_gmsh_entities(FILE* file, char* line_buffer, GMesh* gmesh)
 {
     printf("Reading Entities\t-->\t");
@@ -518,14 +515,12 @@ int read_gmsh_elements(FILE* file, char* line_buffer, GMesh* gmesh)
     return 0;
 }
 
-
 static GMeshCategory gmesh_categories[] =
 {
     {"Entities", &read_gmsh_entities},
     {"Nodes", &read_gmsh_nodes},
     {"Elements", &read_gmsh_elements}
 };
-
 
 int read_gmsh(const char* file_name, GMesh* gmesh)
 {
@@ -549,23 +544,28 @@ int read_gmsh(const char* file_name, GMesh* gmesh)
         }
 
 
+
         for (size_t i = 0; i < GMESH_N_CATEGORIES; ++i)
         {
-            status = gmesh_categories[i].read_gmsh_type(file, line_buffer, gmesh);
-            if (status != 0)
-            {
-                return status;
-            }
-
-            while (sscanf(line_buffer, " $End%s ", category) != 1)
-            {
-                fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
-            }
-
             if (strcmp(category, gmesh_categories[i].category) == 0)
             {
-                printf("Done!\n");
+                status = gmesh_categories[i].read_gmsh_type(file, line_buffer, gmesh);
+                if (status != 0)
+                {
+                    return status;
+                }
+
+                while (sscanf(line_buffer, " $End%s ", category) != 1)
+                {
+                    fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+                }
+
+                if (strcmp(category, gmesh_categories[i].category) == 0)
+                {
+                    printf("Done!\n");
+                }
             }
+            
         }
     }
 

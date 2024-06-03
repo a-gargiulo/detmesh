@@ -155,3 +155,7 @@ $ReversedEntities
 1 129
 2 134
 1 133
+$DiamondBoundingEntities
+4
+0 3
+0 11

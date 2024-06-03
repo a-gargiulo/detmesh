@@ -8,7 +8,7 @@
 
 #include "diamond.h"
 #include "error.h"
-#include "mesh.h"
+#include "gmesh.h"
 
 #define PARSER_LINE_BUFFER_SIZE 1024
 #define PARSER_VARIABLE_NAME_BUFFER_SIZE 100
@@ -62,7 +62,7 @@ int update_variable(const char *name, const double *value, VariableMapping *mapp
     return ERROR_VARIABLE_NOT_FOUND;
 }
 
-int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, MeshConfig *mesh_config)
+int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, GMeshConfig *mesh_config)
 {
     int status;
 

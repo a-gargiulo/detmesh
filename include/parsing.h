@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 #include "diamond.h"
-#include "mesh.h"
+#include "gmesh.h"
 
 
 typedef struct {
@@ -22,6 +22,6 @@ bool is_variable(const char* var, const char* name);
 int update_variable(const char* name, const double* value, VariableMapping* mapping, size_t n_mapping);
 
 int parse_user_input(const char* file_name, Diamond* diamond, double* x_guess,
-                     MeshConfig* config);
+                     GMeshConfig* config);
 
 #endif  // PARSING_H
