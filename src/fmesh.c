@@ -1,4 +1,4 @@
-#include "converter.h"
+#include "fmesh.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -8,62 +8,88 @@
 
 #include "diamond.h"
 #include "error.h"
-#include "mesh.h"
+#include "gmesh.h"
 
 #define CONVERTER_LINE_BUFFER_SIZE 1024
 #define CONVERTER_CATEGORY_BUFFER_SIZE 50
-#define CONVERTER_NUM_STRUCTURE_CATEGORIES 3
+#define CONVERTER_N_STRUCTURE_CATEGORIES 3
 
-int read_structure_file_block(FILE* file, char* line_buffer, int line_buffer_size, int** memory, size_t* n_memory)
+struct FluentNode
 {
-    fgets(line_buffer, line_buffer_size, file);
-    sscanf(line_buffer, " %zu \n", n_memory);
+    int tag;
+    double x, y;
+};
 
-    *memory = (int*)malloc(*n_memory * sizeof(int));
-    if (*memory == NULL)
+struct Point2D
+{
+    int tag;
+    double x, y;
+};
+
+struct StructureFileElement
+{
+    const char* category;
+    size_t n_memory;
+    int* memory;
+};
+
+static StructureFileElement structure_file_elements[CONVERTER_N_STRUCTURE_CATEGORIES] = 
+{
+    {"OrderEntities", 0, NULL},
+    {"OutletEntities", 0, NULL},
+    {"ReversedEntities", 0, NULL}
+};
+
+// MESH STRUCTURE FILE
+int read_structure_file_block(FILE* file, char* line_buffer, size_t n_line_buffer,
+                              StructureFileElement* structure_file_element)
+{
+    fgets(line_buffer, n_line_buffer, file);
+    sscanf(line_buffer, " %zu \n", &structure_file_element->n_memory);
+
+    structure_file_element->memory = (int*)malloc(structure_file_element->n_memory * sizeof(int));
+    if (structure_file_element->memory == NULL)
     {
-        log_error("Could not allocate memory structure file elements!", ERROR_NULL_POINTER);
+        log_error("Could not allocate memory for a structure file element!", ERROR_NULL_POINTER);
         return ERROR_NULL_POINTER;
     }
 
-    for (size_t i = 0; i < *n_memory; i = i + 2)
+    for (size_t i = 0; i < structure_file_element->n_memory; i = i + 2)
     {
         fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-        sscanf(line_buffer, " %d %d \n", &((*memory)[i]), &((*memory)[i + 1]));
+        sscanf(line_buffer, " %d %d \n", &structure_file_element->memory[i], &structure_file_element->memory[i + 1]);
     }
 
     return 0;
 }
 
-int read_mesh_structure_file(const char* file_name, StructureFileElement* structure_file_elements)
+int read_mesh_structure_file(const char* file_name)
 {
     int status;
+
     char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
-    char category[CONVERTER_CATEGORY_BUFFER_SIZE];
+    char category_buffer[CONVERTER_CATEGORY_BUFFER_SIZE];
 
     FILE* file = fopen(file_name, "r");
     if (file == NULL)
     {
-        log_error("Could not open mesh structure file!", ERROR_COULD_NOT_OPEN_FILE);
+        log_error("Mesh structure file could not be opened!", ERROR_COULD_NOT_OPEN_FILE);
         return ERROR_COULD_NOT_OPEN_FILE;
     }
 
     while (fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file) != NULL || !feof(file))
     {
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+        for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
         {
-            printf("ITERATION: %zu\n", i);
-            while (sscanf(line_buffer, " $%s \n", category) != 1)
+            while (sscanf(line_buffer, " $%s \n", category_buffer) != 1)
             {
                 fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
             }
 
-            if (strcmp(category, structure_file_elements[i].category) == 0)
+            if (strcmp(structure_file_elements[i].category, category_buffer) == 0)
             {
-                printf("%s\n", structure_file_elements[i].category);
                 status = read_structure_file_block(file, line_buffer, CONVERTER_LINE_BUFFER_SIZE,
-                                                   &(structure_file_elements[i].memory),
-                                                   &(structure_file_elements[i].n_memory));
+                                                   &structure_file_elements[i]);
                 if (status != 0)
                 {
                     return status;
@@ -77,252 +103,42 @@ int read_mesh_structure_file(const char* file_name, StructureFileElement* struct
     return 0;
 }
 
-int read_gmsh(const char* file_name, Point** points, size_t* n_points, Curve** curves, size_t* n_curves,
-              Surface** surfaces, size_t* n_surfaces, Node** nodes, size_t* n_nodes, size_t* n_entity_blocks,
-              Element** elements, size_t* n_entity_blocks_elements)
+int* get_mesh_structure_element(const char* key)
 {
-    size_t min_node_tag, max_node_tag;
-    size_t n_elements, min_element_tag, max_element_tag;
-
-    char line_buffer[CONVERTER_LINE_BUFFER_SIZE];
-    char start_category[CONVERTER_CATEGORY_BUFFER_SIZE];
-    char end_category[CONVERTER_CATEGORY_BUFFER_SIZE];
-
-    // READ GMSH
-    FILE* file = fopen(file_name, "r");
-    if (file == NULL)
+    for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
     {
-        log_error("The mesh file could not be opened!", ERROR_COULD_NOT_OPEN_FILE);
-        return ERROR_COULD_NOT_OPEN_FILE;
-    }
-    printf("\nGMSH READER\n##################\n\n");
-
-    while (fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file) != NULL || !feof(file))
-    {
-        while (sscanf(line_buffer, " $%s \n", start_category) != 1)
+        if (strcmp(structure_file_elements[i].category, key) == 0)
         {
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-        }
-
-        if (strcmp(start_category, "Entities") == 0)
-        {
-            printf("Reading Entities\t-->\t");
-
-            // Read first line
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            sscanf(line_buffer, " %zu %zu %zu 0 \n", n_points, n_curves, n_surfaces);
-
-            // Read the rest
-            *points = (Point*)malloc(*n_points * sizeof(Point));
-            *curves = (Curve*)malloc(*n_curves * sizeof(Curve));
-            *surfaces = (Surface*)malloc(*n_surfaces * sizeof(Surface));
-            if (*points == NULL || *curves == NULL || *surfaces == NULL)
-            {
-                log_error("Failed to allocate memory for points, curves, or surfaces!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
-            }
-
-            // Points
-            for (size_t i = 0; i < *n_points; ++i)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                sscanf(line_buffer, " %d %lf %lf %lf \n", &(*points)[i].tag, &(*points)[i].x, &(*points)[i].y,
-                       &(*points)[i].z);
-            }
-
-            // Curves
-            for (size_t i = 0; i < *n_curves; ++i)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 2 %d %d \n", &(*curves)[i].tag, &(*curves)[i].min_x,
-                       &(*curves)[i].min_y, &(*curves)[i].min_z, &(*curves)[i].max_x, &(*curves)[i].max_y,
-                       &(*curves)[i].max_z, &(*curves)[i].tags_bounding_points[0],
-                       &(*curves)[i].tags_bounding_points[1]);
-            }
-
-            // Surfaces
-            for (size_t i = 0; i < *n_surfaces; ++i)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 4 %d %d %d %d \n", &(*surfaces)[i].tag,
-                       &(*surfaces)[i].min_x, &(*surfaces)[i].min_y, &(*surfaces)[i].min_z, &(*surfaces)[i].max_x,
-                       &(*surfaces)[i].max_y, &(*surfaces)[i].max_z, &(*surfaces)[i].tags_bounding_curves[0],
-                       &(*surfaces)[i].tags_bounding_curves[1], &(*surfaces)[i].tags_bounding_curves[2],
-                       &(*surfaces)[i].tags_bounding_curves[3]);
-            }
-
-            while (sscanf(line_buffer, " $%s ", end_category) != 1)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            }
-
-            if (strcmp(end_category, "EndEntities") == 0)
-            {
-                printf("Done!\n");
-            }
-        }
-        else if (strcmp(start_category, "Nodes") == 0)
-        {
-            printf("Reading Nodes\t\t-->\t");
-
-            // Read first line
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            sscanf(line_buffer, " %zu %zu %zu %zu ", n_entity_blocks, n_nodes, &min_node_tag, &max_node_tag);
-
-            // Read the rest
-            *nodes = (Node*)malloc(*n_entity_blocks * sizeof(Node));
-            if (*nodes == NULL)
-            {
-                log_error("Failed to allocate memory for nodes!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
-            }
-
-            for (size_t i = 0; i < *n_entity_blocks; ++i)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                sscanf(line_buffer, " %d %d 0 %zu ", &(*nodes)[i].entity_dim, &(*nodes)[i].entity_tag,
-                       &(*nodes)[i].n_nodes_in_block);
-
-                (*nodes)[i].node_tags = (size_t*)malloc((*nodes)[i].n_nodes_in_block * sizeof(size_t));
-                (*nodes)[i].x = (double*)malloc((*nodes)[i].n_nodes_in_block * sizeof(double));
-                (*nodes)[i].y = (double*)malloc((*nodes)[i].n_nodes_in_block * sizeof(double));
-                (*nodes)[i].z = (double*)malloc((*nodes)[i].n_nodes_in_block * sizeof(double));
-
-                if ((*nodes)[i].node_tags == NULL || (*nodes)[i].x == NULL || (*nodes)[i].y == NULL ||
-                    (*nodes)[i].z == NULL)
-                {
-                    log_error("Failed to allocate memory for node tags, x, y, or z!", ERROR_NULL_POINTER);
-                    return ERROR_NULL_POINTER;
-                }
-
-                for (size_t j = 0; j < (*nodes)[i].n_nodes_in_block; ++j)
-                {
-                    fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                    sscanf(line_buffer, " %zu ", &(*nodes)[i].node_tags[j]);
-                }
-
-                for (size_t k = 0; k < (*nodes)[i].n_nodes_in_block; ++k)
-                {
-                    fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                    sscanf(line_buffer, " %lf %lf %lf ", &(*nodes)[i].x[k], &(*nodes)[i].y[k], &(*nodes)[i].z[k]);
-                }
-            }
-
-            while (sscanf(line_buffer, " $%s ", end_category) != 1)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            }
-
-            if (strcmp(end_category, "EndNodes") == 0)
-            {
-                printf("Done!\n");
-            }
-        }
-        else if (strcmp(start_category, "Elements") == 0)
-        {
-            printf("Reading Elements\t-->\t");
-
-            // Read first line
-            fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            sscanf(line_buffer, " %zu %zu %zu %zu ", n_entity_blocks_elements, &n_elements, &min_element_tag,
-                   &max_element_tag);
-
-            // Read the rest
-            *elements = (Element*)malloc(*n_entity_blocks_elements * sizeof(Element));
-            if (*elements == NULL)
-            {
-                log_error("Failed to allocate memory for elements!", ERROR_NULL_POINTER);
-                return ERROR_NULL_POINTER;
-            }
-
-            for (size_t i = 0; i < *n_entity_blocks_elements; ++i)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                sscanf(line_buffer, " %d %d %d %zu ", &(*elements)[i].entity_dim, &(*elements)[i].entity_tag,
-                       &(*elements)[i].element_type, &(*elements)[i].n_elements_in_block);
-
-                (*elements)[i].element_tags = (size_t*)malloc((*elements)[i].n_elements_in_block * sizeof(size_t));
-                if ((*elements)[i].element_tags == NULL)
-                {
-                    log_error("Failed to allocate memory for element tags!", ERROR_NULL_POINTER);
-                    return ERROR_NULL_POINTER;
-                }
-
-                if ((*elements)[i].element_type == 15)
-                {
-                    (*elements)[i].node_tags = (size_t*)malloc((*elements)[i].n_elements_in_block * sizeof(size_t));
-                    if ((*elements)[i].node_tags == NULL)
-                    {
-                        log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
-                        return ERROR_NULL_POINTER;
-                    }
-
-                    for (size_t j = 0; j < (*elements)[i].n_elements_in_block; ++j)
-                    {
-                        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                        sscanf(line_buffer, " %zu %zu ", &(*elements)[i].element_tags[j], &(*elements)[i].node_tags[j]);
-                    }
-                }
-                else if ((*elements)[i].element_type == 1)
-                {
-                    (*elements)[i].node_tags = (size_t*)malloc(2 * (*elements)[i].n_elements_in_block * sizeof(size_t));
-                    if ((*elements)[i].node_tags == NULL)
-                    {
-                        log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
-                        return ERROR_NULL_POINTER;
-                    }
-
-                    for (size_t j = 0; j < (*elements)[i].n_elements_in_block; ++j)
-                    {
-                        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                        sscanf(line_buffer, " %zu %zu %zu ", &(*elements)[i].element_tags[j],
-                               &(*elements)[i].node_tags[j * 2], &(*elements)[i].node_tags[j * 2 + 1]);
-                    }
-                }
-                else if ((*elements)[i].element_type == 3)
-                {
-                    (*elements)[i].node_tags = (size_t*)malloc(4 * (*elements)[i].n_elements_in_block * sizeof(size_t));
-                    if ((*elements)[i].node_tags == NULL)
-                    {
-                        log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
-                        return ERROR_NULL_POINTER;
-                    }
-
-                    for (size_t j = 0; j < (*elements)[i].n_elements_in_block; ++j)
-                    {
-                        fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-                        sscanf(line_buffer, " %zu %zu %zu %zu %zu ", &(*elements)[i].element_tags[j],
-                               &(*elements)[i].node_tags[j * 4], &(*elements)[i].node_tags[j * 4 + 1],
-                               &(*elements)[i].node_tags[j * 4 + 2], &(*elements)[i].node_tags[j * 4 + 3]);
-                    }
-                }
-            }
-            while (sscanf(line_buffer, " $%s ", end_category) != 1)
-            {
-                fgets(line_buffer, CONVERTER_LINE_BUFFER_SIZE, file);
-            }
-
-            if (strcmp(end_category, "EndElements") == 0)
-            {
-                printf("Done!\n");
-            }
+            return structure_file_elements[i].memory;
         }
     }
 
-    fclose(file);
+    return NULL;
+}
+
+size_t get_mesh_structure_element_size(const char* key)
+{
+    for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
+    {
+        if (strcmp(structure_file_elements[i].category, key) == 0)
+        {
+            return structure_file_elements[i].n_memory;
+        }
+    }
+
     return 0;
 }
 
-int y_sorter(const void* point1, const void* point2)
+int y_sorter(const void* node_1, const void* node_2)
 {
-    Point2D* pointA = (Point2D*)point1;
-    Point2D* pointB = (Point2D*)point2;
-    return (pointA->y > pointB->y) - (pointA->y < pointB->y);
+    Point2D* point_A = (Point2D*)node_1;
+    Point2D* point_B = (Point2D*)node_2;
+    return (point_A->y > point_B->y) - (point_A->y < point_B->y);
 }
 
-int is_boundary(const Node* nodes, int block, const int* outlet_entities, const size_t* n_outlet_entities)
+int is_boundary(const Node* nodes, int block, const int* outlet_entities, size_t n_outlet_entities)
 {
-    for (size_t i = 0; i < *n_outlet_entities; i = i + 2)
+    for (size_t i = 0; i < n_outlet_entities; i = i + 2)
     {
         if (nodes[block].entity_dim == outlet_entities[i] && nodes[block].entity_tag == outlet_entities[i + 1])
             return 1;
@@ -330,9 +146,9 @@ int is_boundary(const Node* nodes, int block, const int* outlet_entities, const 
     return 0;
 }
 
-int is_reversed(const Node* nodes, int block, const int* reversed_entities, const size_t* n_reversed_entities)
+int is_reversed(const Node* nodes, int block, const int* reversed_entities, size_t n_reversed_entities)
 {
-    for (size_t i = 0; i < *n_reversed_entities; i = i + 2)
+    for (size_t i = 0; i < n_reversed_entities; i = i + 2)
     {
         if (nodes[block].entity_dim == reversed_entities[i] && nodes[block].entity_tag == reversed_entities[i + 1])
             return 1;
@@ -371,50 +187,15 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
         return ERROR_NULL_POINTER;
     }
 
-    size_t n_order_entities;
-    size_t n_reversed_entities;
-    size_t n_outlet_entities;
-    int* order_entities;
-    int* reversed_entities;
-    int* outlet_entities;
-    char categories[CONVERTER_NUM_STRUCTURE_CATEGORIES][CONVERTER_CATEGORY_BUFFER_SIZE] = {
-        "OrderEntities", "OutletEntities", "ReversedEntities"};
-    StructureFileElement structure_file_elements[CONVERTER_NUM_STRUCTURE_CATEGORIES];
-    // Initialize
-    for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
-    {
-        structure_file_elements[i].category = categories[i];
-        structure_file_elements[i].memory = NULL;
-        structure_file_elements[i].n_memory = 0;
-    }
-    status = read_mesh_structure_file("../data/structure.txt", structure_file_elements);
+    status = read_mesh_structure_file("../data/structure.txt");
     if (status != 0)
     {
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+        for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
         {
             free(structure_file_elements[i].memory);
         }
         free(f_nodes);
         return status;
-    }
-
-    for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
-    {
-        if (strcmp(structure_file_elements[i].category, categories[0]) == 0)
-        {
-            order_entities = structure_file_elements[i].memory;
-            n_order_entities = structure_file_elements[i].n_memory;
-        }
-        else if (strcmp(structure_file_elements[i].category, categories[1]) == 0)
-        {
-            outlet_entities = structure_file_elements[i].memory;
-            n_outlet_entities = structure_file_elements[i].n_memory;
-        }
-        else if (strcmp(structure_file_elements[i].category, categories[2]) == 0)
-        {
-            reversed_entities = structure_file_elements[i].memory;
-            n_reversed_entities = structure_file_elements[i].n_memory;
-        }
     }
 
     // Find mesh dimensions
@@ -442,7 +223,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("The y-dimension resulted to zero!", ERROR_DIVISION_BY_ZERO);
         free(f_nodes);
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+        for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
         {
             free(structure_file_elements[i].memory);
         }
@@ -459,12 +240,14 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         // Search block of nodes
         block = 0;
-        while (nodes[block].entity_dim != order_entities[i] || nodes[block].entity_tag != order_entities[i + 1])
+        while (nodes[block].entity_dim != get_mesh_structure_element("OrderEntities")[i] ||
+               nodes[block].entity_tag != get_mesh_structure_element("OrderEntities")[i + 1])
         {
             block++;
         }
 
-        if (is_reversed(nodes, block, reversed_entities, &n_reversed_entities))
+        if (is_reversed(nodes, block, get_mesh_structure_element("ReversedEntities"),
+                        get_mesh_structure_element_size("ReversedEntities")))
         {
             // Reorder reversed blocks
             Point2D* shuffler = (Point2D*)malloc(nodes[block].n_nodes_in_block * sizeof(Point2D));
@@ -472,7 +255,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
             {
                 log_error("Failed to allocate memory for shuffler!", ERROR_NULL_POINTER);
                 free(f_nodes);
-                for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+                for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
                 {
                     free(structure_file_elements[i].memory);
                 }
@@ -566,7 +349,8 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
             }
         }
 
-        if (is_boundary(nodes, block, outlet_entities, &n_outlet_entities))
+        if (is_boundary(nodes, block, get_mesh_structure_element("OutletEntities"),
+                        get_mesh_structure_element_size("OutletEntities")))
         {
             row_idx = 0;
             if (is_horizontal > 0)
@@ -589,7 +373,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("Coult not open plot_data.txt", ERROR_COULD_NOT_OPEN_FILE);
         free(f_nodes);
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+        for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
         {
             free(structure_file_elements[i].memory);
         }
@@ -658,7 +442,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     {
         log_error("Could not open the Fluent mesh file", ERROR_COULD_NOT_OPEN_FILE);
         free(f_nodes);
-        for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+        for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
         {
             free(structure_file_elements[i].memory);
         }
@@ -868,7 +652,7 @@ int write_fluent(const char* output_file, const Node* nodes, const size_t* n_nod
     printf("Cells: %d\n", n_fluent_cells);
     printf("-----------\n\n");
     free(f_nodes);
-    for (size_t i = 0; i < CONVERTER_NUM_STRUCTURE_CATEGORIES; ++i)
+    for (size_t i = 0; i < CONVERTER_N_STRUCTURE_CATEGORIES; ++i)
     {
         free(structure_file_elements[i].memory);
     }

@@ -1,4 +1,4 @@
-#include "mesh.h"
+#include "gmesh.h"
 
 #define _USE_MATH_DEFINES
 #include <gmshc.h>
@@ -8,12 +8,18 @@
 #include <string.h>
 #include <stddef.h>
 #include "diamond.h"
+#include "error.h"
+
 
 #define DEFAULT_CELL_SIZE 5e-3
 #define deg2rad(deg) ((deg) * M_PI / 180.0)
 
+#define GMESH_LINE_BUFFER_SIZE 1024
+#define GMESH_CATEGORY_BUFFER_SIZE 50
+#define GMESH_N_CATEGORIES 3 
 
-int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig) {
+int mesh_diamond(int argc, char** argv, Diamond* diamond, GMeshConfig* gmesh_config)
+{
   double dAlpha = deg2rad(diamond->alpha);
   double dBeta = deg2rad(diamond->beta);
   double dL = diamond->l;
@@ -22,13 +28,13 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
   double dCx = diamond->cx;
   double dCy = diamond->cy;
 
-  double sUp = meshConfig->sUp; 
-  double sDown = meshConfig->sDown; 
-  double sBlkUp = meshConfig->sBlkUp;
-  double sBlkDown = meshConfig->sBlkDown;
-  double sArcUp = meshConfig->sArcUp;
-  double sArcDown = meshConfig->sArcDown;
-  double tHeight = meshConfig->tHeight;
+  double sUp = gmesh_config->sUp; 
+  double sDown = gmesh_config->sDown; 
+  double sBlkUp = gmesh_config->sBlkUp;
+  double sBlkDown = gmesh_config->sBlkDown;
+  double sArcUp = gmesh_config->sArcUp;
+  double sArcDown = gmesh_config->sArcDown;
+  double tHeight = gmesh_config->tHeight;
 
   int ierr;
 
@@ -336,4 +342,233 @@ int mesh_diamond(int argc, char** argv, Diamond* diamond, MeshConfig* meshConfig
 
   return 0;
   // free(outDimTags);
+}
+
+
+
+int read_gmsh_entities(FILE* file, char* line_buffer, GMesh* gmesh)
+{
+    printf("Reading Entities\t-->\t");
+
+    fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+    sscanf(line_buffer, " %zu %zu %zu 0 \n", &gmesh->n_points, &gmesh->n_curves, &gmesh->n_curves);
+
+    gmesh->points = (Point*)malloc(gmesh->n_points * sizeof(Point));
+    gmesh->curves = (Curve*)malloc(gmesh->n_curves * sizeof(Curve));
+    gmesh->surfaces = (Surface*)malloc(gmesh->n_surfaces * sizeof(Surface));
+    if (gmesh->points == NULL || gmesh->curves == NULL || gmesh->surfaces == NULL)
+    {
+        log_error("Failed to allocate memory for points, curves, or surfaces!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
+    }
+
+    // Points
+    for (size_t i = 0; i < gmesh->n_points; ++i)
+    {
+        fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf \n", &gmesh->points[i].tag, &gmesh->points[i].x, &gmesh->points[i].y, &gmesh->points[i].z);
+    }
+
+    // Curves
+    for (size_t i = 0; i < gmesh->n_curves; ++i)
+    {
+        fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 2 %d %d \n", &gmesh->curves[i].tag, &gmesh->curves[i].min_x, &gmesh->curves[i].min_y, &gmesh->curves[i].min_z, &gmesh->curves[i].max_x, &gmesh->curves[i].max_y, &gmesh->curves[i].max_z, &gmesh->curves[i].tags_bounding_points[0], &gmesh->curves[i].tags_bounding_points[1]);
+    }
+
+    // Surfaces
+    for (size_t i = 0; i < gmesh->n_surfaces; ++i)
+    {
+        fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %lf %lf %lf %lf %lf %lf 0 4 %d %d %d %d \n", &gmesh->surfaces[i].tag, &gmesh->surfaces[i].min_x, &gmesh->surfaces[i].min_y, &gmesh->surfaces[i].min_z, &gmesh->surfaces[i].max_x, &gmesh->surfaces[i].max_y, &gmesh->surfaces[i].max_z, &gmesh->surfaces[i].tags_bounding_curves[0], &gmesh->surfaces[i].tags_bounding_curves[1], &gmesh->surfaces[i].tags_bounding_curves[2], &gmesh->surfaces[i].tags_bounding_curves[3]);
+    }
+
+    return 0;
+}
+
+int read_gmsh_nodes(FILE* file, char* line_buffer, GMesh* gmesh)
+{
+    size_t min_node_tag, max_node_tag;
+
+    printf("Reading Nodes\t\t-->\t");
+
+    fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+    sscanf(line_buffer, " %zu %zu %zu %zu ", &gmesh->n_entity_blocks, &gmesh->n_nodes, &min_node_tag, &max_node_tag);
+
+    gmesh->nodes = (Node*)malloc(gmesh->n_entity_blocks * sizeof(Node));
+    if (gmesh->nodes == NULL)
+    {
+        log_error("Failed to allocate memory for nodes!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
+    }
+
+    for (size_t i = 0; i < gmesh->n_entity_blocks; ++i)
+    {
+        fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %d 0 %zu ", &gmesh->nodes[i].entity_dim, &gmesh->nodes[i].entity_tag, &gmesh->nodes[i].n_nodes_in_block);
+
+        gmesh->nodes[i].node_tags = (size_t*)malloc(gmesh->nodes[i].n_nodes_in_block * sizeof(size_t));
+
+        gmesh->nodes[i].x = (double*)malloc(gmesh->nodes[i].n_nodes_in_block * sizeof(double));
+        gmesh->nodes[i].y = (double*)malloc(gmesh->nodes[i].n_nodes_in_block * sizeof(double));
+        gmesh->nodes[i].z = (double*)malloc(gmesh->nodes[i].n_nodes_in_block * sizeof(double));
+
+        if (gmesh->nodes[i].node_tags == NULL || gmesh->nodes[i].x == NULL || gmesh->nodes[i].y == NULL || gmesh->nodes[i].z == NULL)
+        {
+            log_error("Failed to allocate memory for node tags, x, y, or z!", ERROR_NULL_POINTER);
+            return ERROR_NULL_POINTER;
+        }
+
+        for (size_t j = 0; j < gmesh->nodes[i].n_nodes_in_block; ++j)
+        {
+            fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+            sscanf(line_buffer, " %zu ", &gmesh->nodes[i].node_tags[j]);
+        }
+
+        for (size_t k = 0; k < gmesh->nodes[i].n_nodes_in_block; ++k)
+        {
+            fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+            sscanf(line_buffer, " %lf %lf %lf ", &gmesh->nodes[i].x[k], &gmesh->nodes[i].y[k], &gmesh->nodes[i].z[k]);
+        }
+    }
+
+
+    return 0;
+}
+
+int read_gmsh_elements(FILE* file, char* line_buffer, GMesh* gmesh)
+{
+
+    size_t n_elements, min_element_tag, max_element_tag;
+
+    printf("Reading Elements\t-->\t");
+
+    fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+    sscanf(line_buffer, " %zu %zu %zu %zu ", &gmesh->n_entity_blocks_elements, &n_elements, &min_element_tag, &max_element_tag);
+
+    gmesh->elements = (Element*)malloc(gmesh->n_entity_blocks_elements * sizeof(Element));
+    if (gmesh->elements == NULL)
+    {
+        log_error("Failed to allocate memory for elements!", ERROR_NULL_POINTER);
+        return ERROR_NULL_POINTER;
+    }
+
+    for (size_t i = 0; i < gmesh->n_entity_blocks_elements; ++i)
+    {
+        fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        sscanf(line_buffer, " %d %d %d %zu ", &gmesh->elements[i].entity_dim, &gmesh->elements[i].entity_tag, &gmesh->elements[i].element_type, &gmesh->elements[i].n_elements_in_block);
+
+        gmesh->elements[i].element_tags = (size_t*)malloc(gmesh->elements[i].n_elements_in_block * sizeof(size_t));
+        if (gmesh->elements[i].element_tags == NULL)
+        {
+            log_error("Failed to allocate memory for element tags!", ERROR_NULL_POINTER);
+            return ERROR_NULL_POINTER;
+        }
+
+        if (gmesh->elements[i].element_type == 15)
+        {
+            gmesh->elements[i].node_tags = (size_t*)malloc(gmesh->elements[i].n_elements_in_block * sizeof(size_t));
+            if (gmesh->elements[i].node_tags == NULL)
+            {
+                log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
+                return ERROR_NULL_POINTER;
+            }
+
+            for (size_t j = 0; j < gmesh->elements[i].n_elements_in_block; ++j)
+            {
+                fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+                sscanf(line_buffer, " %zu %zu ", &gmesh->elements[i].element_tags[j], &gmesh->elements[i].node_tags[j]);
+            }
+        }
+        else if (gmesh->elements[i].element_type == 1)
+        {
+            gmesh->elements[i].node_tags = (size_t*)malloc(2 * gmesh->elements[i].n_elements_in_block * sizeof(size_t));
+            if (gmesh->elements[i].node_tags == NULL)
+            {
+                log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
+                return ERROR_NULL_POINTER;
+            }
+
+            for (size_t j = 0; j < gmesh->elements[i].n_elements_in_block; ++j)
+            {
+                fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+                sscanf(line_buffer, " %zu %zu %zu ", &gmesh->elements[i].element_tags[j],
+                       &gmesh->elements[i].node_tags[j * 2], &gmesh->elements[i].node_tags[j * 2 + 1]);
+            }
+        }
+        else if (gmesh->elements[i].element_type == 3)
+        {
+            gmesh->elements[i].node_tags = (size_t*)malloc(4 * gmesh->elements[i].n_elements_in_block * sizeof(size_t));
+            if (gmesh->elements[i].node_tags == NULL)
+            {
+                log_error("Failed to allocate memory for node tags!", ERROR_NULL_POINTER);
+                return ERROR_NULL_POINTER;
+            }
+
+            for (size_t j = 0; j < gmesh->elements[i].n_elements_in_block; ++j)
+            {
+                fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+                sscanf(line_buffer, " %zu %zu %zu %zu %zu ", &gmesh->elements[i].element_tags[j],
+                       &gmesh->elements[i].node_tags[j * 4], &gmesh->elements[i].node_tags[j * 4 + 1],
+                       &gmesh->elements[i].node_tags[j * 4 + 2], &gmesh->elements[i].node_tags[j * 4 + 3]);
+            }
+        }
+    }
+            
+    return 0;
+}
+
+
+static GMeshCategory gmesh_categories[] =
+{
+    {"Entities", &read_gmsh_entities},
+    {"Nodes", &read_gmsh_nodes},
+    {"Elements", &read_gmsh_elements}
+};
+
+
+int read_gmsh(const char* file_name, GMesh* gmesh)
+{
+    int status;
+    char line_buffer[GMESH_LINE_BUFFER_SIZE];
+    char category[GMESH_CATEGORY_BUFFER_SIZE];
+
+    FILE* file = fopen(file_name, "r");
+    if (file == NULL)
+    {
+        log_error("The gmsh file could not be opened!", ERROR_COULD_NOT_OPEN_FILE);
+        return ERROR_COULD_NOT_OPEN_FILE;
+    }
+    
+    printf("\nGMSH READER\n##################\n\n");
+    while (fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file) != NULL || !feof(file))
+    {
+        while (sscanf(line_buffer, " $%s \n", category) != 1)
+        {
+            fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+        }
+
+
+        for (size_t i = 0; i < GMESH_N_CATEGORIES; ++i)
+        {
+            status = gmesh_categories[i].read_gmsh_type(file, line_buffer, gmesh);
+            if (status != 0)
+            {
+                return status;
+            }
+
+            while (sscanf(line_buffer, " $End%s ", category) != 1)
+            {
+                fgets(line_buffer, GMESH_LINE_BUFFER_SIZE, file);
+            }
+
+            if (strcmp(category, gmesh_categories[i].category) == 0)
+            {
+                printf("Done!\n");
+            }
+        }
+    }
+
+    fclose(file);
+    return 0;
 }

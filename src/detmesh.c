@@ -6,7 +6,7 @@
 
 #include "converter.h"
 #include "diamond.h"
-#include "mesh.h"
+#include "gmesh.h"
 #include "parsing.h"
 
 int run(int argc, char** argv)
@@ -15,20 +15,21 @@ int run(int argc, char** argv)
     int status;
 
     Diamond diamond;
-    MeshConfig mesh_config;
+     
+    GMeshConfig gmesh_config;
+    GMesh gmesh =
+    {
+        NULL, 0,
+        NULL, 0,
+        NULL, 0,
+        NULL, 0, 0,
+        NULL, 0
+    };
+
     double x_guess[4];
 
-    Point* points = NULL;
-    Curve* curves = NULL;
-    Surface* surfaces = NULL;
-    Node* nodes = NULL;
-    Element* elements = NULL;
-    size_t n_points = 0, n_curves = 0, n_surfaces = 0;
-    size_t n_nodes = 0, n_entity_blocks = 0;
-    size_t n_entity_blocks_elements = 0;
-
     // PARSER
-    status = parse_user_input(argv[argc - 1], &diamond, x_guess, &mesh_config);
+    status = parse_user_input(argv[argc - 1], &diamond, x_guess, &gmesh_config);
     if (status != 0)
     {
         return status;
@@ -42,16 +43,14 @@ int run(int argc, char** argv)
     }
 
     // GENERATE GMSH
-    status = mesh_diamond(argc, argv, &diamond, &mesh_config);
+    status = mesh_diamond(argc, argv, &diamond, &gmesh_config);
     if (status != 0)
     {
         return status;
     }
 
     // READ GMSH
-    status =
-        read_gmsh("diamond.msh", &points, &n_points, &curves, &n_curves, &surfaces, &n_surfaces,
-                  &nodes, &n_nodes, &n_entity_blocks, &elements, &n_entity_blocks_elements);
+    status = read_gmsh("diamond.msh", &gmesh);
     if (status != 0)
     {
         clean_resources(points, curves, surfaces, nodes, &n_entity_blocks, elements,
@@ -61,7 +60,7 @@ int run(int argc, char** argv)
 
     // WRITE FLUENT MESH
     status =
-        write_fluent("diamond_fluent.msh", nodes, &n_nodes, &n_entity_blocks, &diamond, &mesh_config);
+        write_fluent("diamond_fluent.msh", nodes, &n_nodes, &n_entity_blocks, &diamond, &gmesh_config);
     if (status != 0)
     {
         clean_resources(points, curves, surfaces, nodes, &n_entity_blocks, elements,
