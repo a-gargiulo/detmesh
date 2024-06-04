@@ -46,7 +46,8 @@ typedef struct
 
 void print_fmesh_stats(const FMesh* fmesh);
 int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, const GMeshConfig* gmesh_config, const FMesh* fmesh);
-int write_fluent(const char* output_file, const Diamond* diamond, const GMeshConfig* gmesh_config, const GMesh* gmesh, FMesh* fmesh);
+
+int write_fluent(const char* output_file, const char* structure_file, const Diamond* diamond, const GMeshConfig* gmesh_config, const GMesh* gmesh, FMesh* fmesh);
 
 int y_sorter(const void* node_1, const void* node_2);
 

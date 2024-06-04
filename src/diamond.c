@@ -8,9 +8,9 @@
 #include <math.h>
 #include <stdio.h>
 
-typedef void (*Fcn)(int, double *, double *, int, double *);
+typedef void (*Fcn)(int, double*, double*, int, double*);
 
-void arc_constraints(int n, double *x, double *fvec, int nXtraArgs, double *xtraArgs)
+void arc_constraints(int n, double* x, double* fvec, int nXtraArgs, double* xtraArgs)
 {
     double alpha = xtraArgs[0] * M_PI / 180.0;
     double beta = xtraArgs[1] * M_PI / 180.0;
@@ -26,7 +26,7 @@ void arc_constraints(int n, double *x, double *fvec, int nXtraArgs, double *xtra
     fvec[3] = (l - x[1]) * (x[1] - x[2]) - tan(beta) * (l - x[1]) * (tan(beta) * (l - x[1]) - x[3]);
 }
 
-int calculate_arc_parameters(double *x_guess, Diamond *diamond)
+int calculate_arc_parameters(double* x_guess, Diamond* diamond)
 {
     int status;
     Fcn fcn = arc_constraints;
@@ -40,7 +40,6 @@ int calculate_arc_parameters(double *x_guess, Diamond *diamond)
     xtraArgs[3] = diamond->r;
 
     status = fsolve(fcn, N_ARC_PARAMS, x_guess, fvec, REL_TOL, N_XTRA_ARGS, xtraArgs);
-    printf("FSOLVE STATUS %d\n", status);
 
     diamond->x1 = x_guess[0];
     diamond->x2 = x_guess[1];

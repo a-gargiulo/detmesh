@@ -13,7 +13,7 @@
 #define PARSER_LINE_BUFFER_SIZE 1024
 #define PARSER_VARIABLE_NAME_BUFFER_SIZE 100
 
-void trim(char **str)
+void trim(char** str)
 {
     while (isspace(**str))
         (*str)++;
@@ -23,14 +23,14 @@ void trim(char **str)
         printf("WARNING: The input string is empty!\n");
     }
 
-    char *end = *str + strlen(*str) - 1;
+    char* end = *str + strlen(*str) - 1;
     while (end > *str && isspace(*end))
         end--;
 
     *(end + 1) = '\0';
 }
 
-void format_variable_name(char *str)
+void format_variable_name(char* str)
 {
     int len = strlen(str);
     for (int i = 0; i < len; i++)
@@ -43,12 +43,12 @@ void format_variable_name(char *str)
     }
 }
 
-bool is_variable(const char *var, const char *name)
+bool is_variable(const char* var, const char* name)
 {
     return strcmp(var, name) == 0;
 }
 
-int update_variable(const char *name, const double *value, VariableMapping *mapping, size_t n_mapping)
+int update_variable(const char* name, const double* value, VariableMapping* mapping, size_t n_mapping)
 {
     for (size_t i = 0; i < n_mapping; ++i)
     {
@@ -62,9 +62,14 @@ int update_variable(const char *name, const double *value, VariableMapping *mapp
     return ERROR_VARIABLE_NOT_FOUND;
 }
 
-int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, GMeshConfig *mesh_config)
+int parse_user_input(const char* file_name, Diamond* diamond, double* x_guess, GMeshConfig* mesh_config)
 {
     int status;
+    // Default value
+    if (file_name == NULL)
+    {
+        file_name = "input.txt";
+    }
 
     VariableMapping mapping[] = {{"leading_half_angle", &diamond->alpha},
                                  {"trailing_half_angle", &diamond->beta},
@@ -80,10 +85,10 @@ int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, G
 
     char line_buffer[PARSER_LINE_BUFFER_SIZE];
     char name_buffer[PARSER_VARIABLE_NAME_BUFFER_SIZE];
-    char *name;
+    char* name;
     double value;
 
-    FILE *file = fopen(file_name, "r");
+    FILE* file = fopen(file_name, "r");
     if (file == NULL)
     {
         log_error("Could not open the input file.", ERROR_COULD_NOT_OPEN_FILE);
@@ -103,8 +108,8 @@ int parse_user_input(const char *file_name, Diamond *diamond, double *x_guess, G
                 return status;
             }
         }
-        else if (sscanf(line_buffer, " %[^(] (%*[^)]) = [ %lf , %lf , %lf , %lf ]", name_buffer, &x_guess[0], &x_guess[1],
-                        &x_guess[2], &x_guess[3]) == 5)
+        else if (sscanf(line_buffer, " %[^(] (%*[^)]) = [ %lf , %lf , %lf , %lf ]", name_buffer, &x_guess[0],
+                        &x_guess[1], &x_guess[2], &x_guess[3]) == 5)
         {
             for (size_t i = 0; i < 4; ++i)
             {

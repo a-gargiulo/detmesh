@@ -1,13 +1,14 @@
 #include "detmesh.h"
 
 #include <stddef.h>
-#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
-#include "fmesh.h"
 #include "diamond.h"
+#include "fmesh.h"
 #include "gmesh.h"
 #include "parsing.h"
+#include "error.h"
 
 int run(int argc, char** argv)
 {
@@ -21,8 +22,8 @@ int run(int argc, char** argv)
 
     FMesh fmesh = {0};
 
-    // PARSE INPUT
-    status = parse_user_input(argv[argc - 1], &diamond, x_guess, &gmesh_config);
+    
+    status = parse_user_input(get_opt("-input", argc, argv), &diamond, x_guess, &gmesh_config);
     if (status != 0)
     {
         clean_resources(&gmesh, &fmesh);
@@ -46,7 +47,7 @@ int run(int argc, char** argv)
     }
 
     // READ GMSH
-    status = read_gmsh("diamond.msh", &gmesh);
+    status = read_gmsh(get_opt("-gmesh", argc, argv), &gmesh);
     if (status != 0)
     {
         clean_resources(&gmesh, &fmesh);
@@ -54,8 +55,7 @@ int run(int argc, char** argv)
     }
 
     // WRITE FLUENT MESH
-    status =
-        write_fluent("diamond_fluent.msh", &diamond, &gmesh_config, &gmesh, &fmesh);
+    status = write_fluent(get_opt("-fluent", argc, argv), get_opt("-structure", argc, argv), &diamond, &gmesh_config, &gmesh, &fmesh);
     if (status != 0)
     {
         clean_resources(&gmesh, &fmesh);
@@ -67,6 +67,21 @@ int run(int argc, char** argv)
 
     return 0;
 }
+
+const char* get_opt(const char* option, int argc, char** argv)
+{
+
+    for (int i = 0; i < argc; ++i)
+    {
+        if (strcmp(argv[i], option) == 0)
+            return argv[i+1];
+    }
+
+    printf("DETMESH INFO: %s option not found. Using default value.\n", option);
+    return NULL;
+
+}
+
 
 void clean_resources(GMesh* gmesh, FMesh* fmesh)
 {
@@ -98,6 +113,7 @@ void clean_resources(GMesh* gmesh, FMesh* fmesh)
         }
     }
     free(gmesh->elements);
-    
+
     free(fmesh->nodes);
 }
+

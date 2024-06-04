@@ -15,16 +15,13 @@
 #define FMESH_N_STRUCTURE_CATEGORIES 4
 #define FMESH_N_DIAMOND_BOUNDING_ENTITIES 2
 
-static StructureFileElement structure_file_elements[FMESH_N_STRUCTURE_CATEGORIES] = 
-{
+static StructureFileElement structure_file_elements[FMESH_N_STRUCTURE_CATEGORIES] = {
     {"OrderEntities", 0, NULL},
     {"OutletEntities", 0, NULL},
     {"ReversedEntities", 0, NULL},
-    {"DiamondBoundingEntities", 0, NULL}
-};
+    {"DiamondBoundingEntities", 0, NULL}};
 
-int read_structure_file_block(FILE* file, char* line_buffer,
-                              StructureFileElement* structure_file_element)
+int read_structure_file_block(FILE* file, char* line_buffer, StructureFileElement* structure_file_element)
 {
     fgets(line_buffer, FMESH_LINE_BUFFER_SIZE, file);
     sscanf(line_buffer, " %zu \n", &structure_file_element->n_memory);
@@ -39,8 +36,7 @@ int read_structure_file_block(FILE* file, char* line_buffer,
     for (size_t i = 0; i < structure_file_element->n_memory; i = i + 2)
     {
         fgets(line_buffer, FMESH_LINE_BUFFER_SIZE, file);
-        sscanf(line_buffer, " %d %d \n", &structure_file_element->memory[i],
-               &structure_file_element->memory[i + 1]);
+        sscanf(line_buffer, " %d %d \n", &structure_file_element->memory[i], &structure_file_element->memory[i + 1]);
     }
 
     return 0;
@@ -122,20 +118,17 @@ int is_boundary(const Node* nodes, int block, const int* outlet_entities, size_t
 {
     for (size_t i = 0; i < n_outlet_entities; i = i + 2)
     {
-        if (nodes[block].entity_dim == outlet_entities[i] &&
-            nodes[block].entity_tag == outlet_entities[i + 1])
+        if (nodes[block].entity_dim == outlet_entities[i] && nodes[block].entity_tag == outlet_entities[i + 1])
             return 1;
     }
     return 0;
 }
 
-int is_reversed(const Node* nodes, int block, const int* reversed_entities,
-                size_t n_reversed_entities)
+int is_reversed(const Node* nodes, int block, const int* reversed_entities, size_t n_reversed_entities)
 {
     for (size_t i = 0; i < n_reversed_entities; i = i + 2)
     {
-        if (nodes[block].entity_dim == reversed_entities[i] &&
-            nodes[block].entity_tag == reversed_entities[i + 1])
+        if (nodes[block].entity_dim == reversed_entities[i] && nodes[block].entity_tag == reversed_entities[i + 1])
             return 1;
     }
     return 0;
@@ -173,7 +166,7 @@ int calculate_fmesh_dimensions(const GMesh* gmesh, Dim* dim)
         log_error("The y-dimension resulted to zero!", ERROR_DIVISION_BY_ZERO);
         return ERROR_DIVISION_BY_ZERO;
     }
-    
+
     dim->x = (gmesh->n_nodes - 1) / dim->y;
     return 0;
 }
@@ -195,7 +188,7 @@ int build_fmesh(const GMesh* gmesh, FMesh* fmesh)
     // Traverse mesh structure
     for (size_t i = 0; i < 2 * (gmesh->n_entity_blocks - 1); i = i + 2)
     {
-        // Find node block 
+        // Find node block
         block = 0;
         while (gmesh->nodes[block].entity_dim != get_mesh_structure_element("OrderEntities")[i] ||
                gmesh->nodes[block].entity_tag != get_mesh_structure_element("OrderEntities")[i + 1])
@@ -231,11 +224,9 @@ int build_fmesh(const GMesh* gmesh, FMesh* fmesh)
             }
             else if (gmesh->nodes[block].entity_dim == 2)
             {
-                for (size_t m = 0; m < gmesh->nodes[block].n_nodes_in_block / reversed_blocks_dim_y;
-                     ++m)
+                for (size_t m = 0; m < gmesh->nodes[block].n_nodes_in_block / reversed_blocks_dim_y; ++m)
                 {
-                    qsort(shuffler + m * reversed_blocks_dim_y, reversed_blocks_dim_y,
-                          sizeof(Point2D), y_sorter);
+                    qsort(shuffler + m * reversed_blocks_dim_y, reversed_blocks_dim_y, sizeof(Point2D), y_sorter);
                 }
             }
             for (size_t m = 0; m < gmesh->nodes[block].n_nodes_in_block; ++m)
@@ -321,8 +312,6 @@ int build_fmesh(const GMesh* gmesh, FMesh* fmesh)
         }
     }
 
-
-
     fmesh->n_cells = (fmesh->dim.x - 1) * (fmesh->dim.y - 1);
     fmesh->n_faces = fmesh->dim.x * (fmesh->dim.y - 1) + fmesh->dim.y * (fmesh->dim.x - 1);
     fmesh->n_faces_top = fmesh->dim.x - 1;
@@ -330,7 +319,8 @@ int build_fmesh(const GMesh* gmesh, FMesh* fmesh)
     for (size_t i = 0; i < get_mesh_structure_element_size("DiamondBoundingEntities") / 2; ++i)
     {
         while (gmesh->nodes[diamond_bounding_entities[i]].entity_dim != 0 ||
-               gmesh->nodes[diamond_bounding_entities[i]].entity_tag != get_mesh_structure_element("DiamondBoundingEntities")[2 * i + 1])
+               gmesh->nodes[diamond_bounding_entities[i]].entity_tag !=
+                   get_mesh_structure_element("DiamondBoundingEntities")[2 * i + 1])
         {
             diamond_bounding_entities[i]++;
         }
@@ -352,15 +342,14 @@ int build_fmesh(const GMesh* gmesh, FMesh* fmesh)
     fmesh->n_faces_down = idx_down - 1;
     fmesh->n_faces_diamond = fmesh->dim.x - idx_up - idx_down + 1;
     fmesh->n_faces_io = fmesh->dim.y - 1;
-    fmesh->n_faces_interior = fmesh->n_faces - 2 * fmesh->n_faces_io - fmesh->n_faces_top -
-                                  fmesh->n_faces_up - fmesh->n_faces_diamond - fmesh->n_faces_down;
-
+    fmesh->n_faces_interior = fmesh->n_faces - 2 * fmesh->n_faces_io - fmesh->n_faces_top - fmesh->n_faces_up -
+                              fmesh->n_faces_diamond - fmesh->n_faces_down;
 
     return 0;
-
 }
 
-int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, const GMeshConfig* gmesh_config, const FMesh* fmesh)
+int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, const GMeshConfig* gmesh_config,
+                           const FMesh* fmesh)
 {
 
     int row;
@@ -391,7 +380,7 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
     fprintf(file, "(12 (2 1 %x 1 3))\n", (int)fmesh->n_cells);
     fprintf(file, "\n");
 
-    // INTERIOR 
+    // INTERIOR
     fprintf(file, "(13 (3 1 %x %x 2)(\n", (int)fmesh->n_faces_interior, 2);
     for (size_t i = 0; i < fmesh->n_nodes; ++i)
     {
@@ -403,7 +392,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 1;
             n2 = i + fmesh->dim.x + 1;
-            c1 = (floor((i + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + fmesh->dim.x) % fmesh->dim.x;
+            c1 =
+                (floor((i + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + fmesh->dim.x) % fmesh->dim.x;
             c2 = c1 + 1;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -413,7 +403,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 2;
             n2 = i + 1;
-            c2 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + 1 + fmesh->dim.x) % fmesh->dim.x;
+            c2 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) +
+                 (i + 1 + fmesh->dim.x) % fmesh->dim.x;
             c1 = c2 - fmesh->dim.x + 1;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -433,7 +424,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + fmesh->dim.x + 1;
             n2 = i + 1;
-            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + 1 + fmesh->dim.x) % fmesh->dim.x;
+            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) +
+                 (i + 1 + fmesh->dim.x) % fmesh->dim.x;
             c2 = 0;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -453,7 +445,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 1;
             n2 = i + fmesh->dim.x + 1;
-            c1 = (floor((i + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + fmesh->dim.x) % fmesh->dim.x;
+            c1 =
+                (floor((i + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + fmesh->dim.x) % fmesh->dim.x;
             c2 = 0;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -473,7 +466,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 1;
             n2 = i + 2;
-            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + 1 + fmesh->dim.x) % fmesh->dim.x;
+            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) +
+                 (i + 1 + fmesh->dim.x) % fmesh->dim.x;
             c2 = 0;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -484,8 +478,7 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
     // DIAMOND
     fprintf(file, "(13 (7 %x %x 3 2)(\n",
             (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + 1),
-            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up +
-                fmesh->n_faces_diamond));
+            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + fmesh->n_faces_diamond));
     for (size_t i = 0; i < fmesh->n_nodes; ++i)
     {
         row = floor(i / fmesh->dim.x);
@@ -496,7 +489,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 1;
             n2 = i + 2;
-            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + 1 + fmesh->dim.x) % fmesh->dim.x;
+            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) +
+                 (i + 1 + fmesh->dim.x) % fmesh->dim.x;
             c2 = 0;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -506,10 +500,9 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
 
     // SYMMETRY DOWN
     fprintf(file, "(13 (8 %x %x 7 2)(\n",
-            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up +
-                fmesh->n_faces_diamond + 1),
-            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up +
-                fmesh->n_faces_diamond + fmesh->n_faces_down));
+            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + fmesh->n_faces_diamond + 1),
+            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + fmesh->n_faces_diamond +
+                  fmesh->n_faces_down));
     for (size_t i = 0; i < fmesh->n_nodes; ++i)
     {
         row = floor(i / fmesh->dim.x);
@@ -519,7 +512,8 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
         {
             n1 = i + 1;
             n2 = i + 2;
-            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) + (i + 1 + fmesh->dim.x) % fmesh->dim.x;
+            c1 = (floor((i + 1 + fmesh->dim.x) / fmesh->dim.x) - 1) * (fmesh->dim.x - 1) +
+                 (i + 1 + fmesh->dim.x) % fmesh->dim.x;
             c2 = 0;
             fprintf(file, "%x %x %x %x\n", n1, n2, c1, c2);
         }
@@ -529,10 +523,10 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
 
     // TOP WALL
     fprintf(file, "(13 (9 %x %x 3 2)(\n",
-            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up +
-                fmesh->n_faces_diamond + fmesh->n_faces_down + 1),
-            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up +
-                fmesh->n_faces_diamond + fmesh->n_faces_down + fmesh->n_faces_top));
+            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + fmesh->n_faces_diamond +
+                  fmesh->n_faces_down + 1),
+            (int)(fmesh->n_faces_interior + 2 * fmesh->n_faces_io + fmesh->n_faces_up + fmesh->n_faces_diamond +
+                  fmesh->n_faces_down + fmesh->n_faces_top));
     for (size_t i = 0; i < fmesh->n_nodes; ++i)
     {
         row = floor(i / fmesh->dim.x);
@@ -549,7 +543,7 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
     }
     fprintf(file, "))\n");
     fprintf(file, "\n");
-    
+
     // NODES
     fprintf(file, "(10 (1 1 %x 1 2)(\n", (int)fmesh->n_nodes);
     for (size_t i = 0; i < fmesh->n_nodes; ++i)
@@ -565,7 +559,6 @@ int write_fluent_mesh_file(const char* output_file, const Diamond* diamond, cons
 
     return 0;
 }
-
 
 void print_fmesh_stats(const FMesh* fmesh)
 {
@@ -590,11 +583,15 @@ void print_fmesh_stats(const FMesh* fmesh)
     printf("-----------\n\n");
 }
 
-
-int write_fluent(const char* output_file, const Diamond* diamond, const GMeshConfig* gmesh_config,
-                 const GMesh* gmesh, FMesh* fmesh)
+int write_fluent(const char* output_file, const char* structure_file, const Diamond* diamond, const GMeshConfig* gmesh_config, const GMesh* gmesh,
+                 FMesh* fmesh)
 {
     int status;
+    if (output_file == NULL)
+        output_file = "fluent_diamond.msh";
+
+    if (structure_file == NULL)
+        structure_file = "structure.txt";
 
     printf("\nFLUENT MESH WRITER\n##################\n\n");
 
@@ -606,27 +603,26 @@ int write_fluent(const char* output_file, const Diamond* diamond, const GMeshCon
         return ERROR_NULL_POINTER;
     }
 
-    status = calculate_fmesh_dimensions(gmesh, &fmesh->dim); 
+    status = calculate_fmesh_dimensions(gmesh, &fmesh->dim);
     if (status != 0)
     {
         clean_internal_resources(structure_file_elements);
         return status;
     }
 
-    status = read_mesh_structure_file("../data/structure.txt");
+    status = read_mesh_structure_file(structure_file);
     if (status != 0)
     {
         clean_internal_resources(structure_file_elements);
         return status;
     }
 
-    status = build_fmesh(gmesh, fmesh); 
+    status = build_fmesh(gmesh, fmesh);
     if (status != 0)
     {
         clean_internal_resources(structure_file_elements);
         return status;
     }
-
 
     status = write_fluent_mesh_file(output_file, diamond, gmesh_config, fmesh);
     if (status != 0)
@@ -638,6 +634,6 @@ int write_fluent(const char* output_file, const Diamond* diamond, const GMeshCon
     print_fmesh_stats(fmesh);
 
     clean_internal_resources(structure_file_elements);
-    
+
     return 0;
 }
